@@ -239,7 +239,29 @@ EOF
 	send "exit\r"
 	expect eof
 EOF
-
+/usr/bin/expect <<EOF
+	spawn ssh $user@$target_party_serving_ip
+	expect {
+		"(yes/no)?" {
+			send "yes\n"
+			expect "password:"
+			send "$password\n"
+		}
+		"password:" {
+			send "$password\n"
+		}
+	}
+	expect "#"
+	send "ls\r"
+	expect "#"
+	send "cd $dir\r"
+	expect "#"
+	send "cd confs-$target_party_id\r"
+	expect "#"
+	send "docker-compose up -d\r"
+	expect "#"
+    send "exit\r"
+EOF
 	echo "party ${target_party_id} deploy is ok!"
 }
 
@@ -320,6 +342,29 @@ EOF
 	send "docker-compose up -d\r"
 	expect "#"
 	send "rm -f ../serving-$target_party_id.tar\r"
+	expect "#"
+	send "docker-compose up -d\r"
+	expect "#"
+    send "exit\r"
+EOF
+/usr/bin/expect <<EOF
+	spawn ssh $user@$target_party_serving_ip
+	expect {
+		"(yes/no)?" {
+			send "yes\n"
+			expect "password:"
+			send "$password\n"
+		}
+		"password:" {
+			send "$password\n"
+		}
+	}
+	expect "#"
+	send "ls\r"
+	expect "#"
+	send "cd $dir\r"
+	expect "#"
+	send "cd serving-$target_party_id\r"
 	expect "#"
 	send "docker-compose up -d\r"
 	expect "#"
