@@ -129,12 +129,12 @@ def deploy():
 
 def upload():
     create_upload_json(args.datapath, args.project, args.tablename)
-    ret = run_cmd(["python", fate_flow_path, "-f", "upload", "-c", UPLOAD_JSON_PATH])
-    print(ret)
+    os.system(" ".join(["python", fate_flow_path, "-f", "upload", "-c", UPLOAD_JSON_PATH]))
 
 
 def delete():
     os.system("bash ./docker_deploy.sh --delete all")
+
 
 def submit():
     pass
@@ -146,3 +146,5 @@ elif args.function == "submit":
     submit()
 elif args.function == "upload":
     upload()
+elif args.function == "delete":
+    delete()

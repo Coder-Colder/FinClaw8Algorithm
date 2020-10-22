@@ -65,6 +65,17 @@ Deploy() {
 					fi
 				fi
 			done
+			iii=0
+			for party in ${partylist[*]}; do
+				password=${passwords[iii]}
+				datapath=${datapaths[iii]}
+				table_name=${table_names[iii]}
+				((iii++))
+				DeployPartyUpload $party
+				if [ "${exchangeip}" != "" ]; then
+					DeployPartyUpload exchange
+				fi
+			done
 			break
 			;;
 		*)
@@ -180,21 +191,6 @@ DeployPartyInternal() {
 	expect eof
 EOF
 
-/usr/bin/expect <<EOF
-	spawn scp ${WORKINGDIR}/script.py $user@$target_party_ip:~/
-	expect {
-		"(yes/no)?" {
-			send "yes\n"
-			expect "password:"
-			send "$password\n"
-		}
-		"password:" {
-			send "$password\n"
-		}
-	}
-	expect eof
-EOF
-
 	echo "$target_party_ip training cluster copy is ok!"
 
 /usr/bin/expect <<EOF
@@ -234,8 +230,6 @@ EOF
 	expect "#"
 	send "rm -f ../confs-${target_party_id}.tar\r"
 	expect "#"
-	send "docker-compose up -d\r"
-    expect "#"
 	send "exit\r"
 	expect eof
 EOF
@@ -264,7 +258,84 @@ EOF
 }
 
 DeployPartyUpload() {
+    target_party_id=$1
+	# should not use localhost at any case
+	target_party_serving_ip="127.0.0.1"
 
+	# check configuration files
+	if [ ! -d ${WORKINGDIR}/outputs ]; then
+		echo "Unable to find outputs dir, please generate config files first."
+		exit 1
+	fi
+	if [ ! -f ${WORKINGDIR}/outputs/serving-${target_party_id}.tar ]; then
+		echo "Unable to find deployment file for party $target_party_id, please generate it first."
+		exit 1
+	fi
+	# extract the ip address of the target party
+	for ((i = 0; i < ${#partylist[*]}; i++)); do
+		if [ "${partylist[$i]}" = "$target_party_id" ]; then
+			target_party_serving_ip=${servingiplist[$i]}
+		fi
+	done
+	# verify the target_party_ip
+	if [ "$target_party_serving_ip" = "127.0.0.1" ]; then
+		echo "Unable to find Party : $target_party_id serving address, please check you input."
+		exit 1
+	fi
+
+/usr/bin/expect <<EOF
+	spawn scp ${WORKINGDIR}/script.py $user@$target_party_ip:~/
+	expect {
+		"(yes/no)?" {
+			send "yes\n"
+			expect "password:"
+			send "$password\n"
+		}
+		"password:" {
+			send "$password\n"
+		}
+	}
+	expect eof
+EOF
+
+/usr/bin/expect<<EOF
+    spawn ssh $user@$target_party_serving_ip
+	expect {
+		"(yes/no)?" {
+			send "yes\n"
+			expect "password:"
+			send "$password\n"
+		}
+		"password:" {
+			send "$password\n"
+		}
+	}
+	expect "#"
+	send "docker ps\r"
+    expect "#"
+    send "docker exec -it confs-${target_party_id}_python_1 bash\r"
+    expect "#"
+    send "mkdir -p $project\r"
+    expect "#"
+    send "exit\r"
+	expect "#"
+	send "docker cp $datapath confs-${target_party_id}_python_1:/data/projects/fate/python/${project}/data.csv\r"
+	expect "#"
+	send "docker cp ~/script.py confs-${target_party_id}_python_1:/data/projects/fate/python/${project}/\r"
+    expect "#"
+    send "docker exec -it confs-${target_party_id}_python_1 bash\r"
+    expect "#"
+    send "cd ${project}\r"
+    expect "#"
+    send "python script.py -f upload -tb $table_name -dp /data/projects/fate/python/${project}/data.csv -proj $project\r"
+    expect "#"
+    send "exit\r"
+    expect "#"
+	send "rm ~/script.py\r"
+	expect "#"
+    send "exit\r"
+EOF
+    echo "party $target_party_id upload dataset is ok!"
 }
 
 DeployPartyServing() {
@@ -345,49 +416,9 @@ EOF
 	expect "#"
 	send "rm -f ../serving-$target_party_id.tar\r"
 	expect "#"
-	send "docker-compose up -d\r"
-	expect "#"
     send "exit\r"
 EOF
 	echo "party $target_party_id serving cluster deploy is ok!"
-
-/usr/bin/expect<<EOF
-    spawn ssh $user@$target_party_serving_ip
-	expect {
-		"(yes/no)?" {
-			send "yes\n"
-			expect "password:"
-			send "$password\n"
-		}
-		"password:" {
-			send "$password\n"
-		}
-	}
-	expect "#"
-	send "docker ps\r"
-    expect "#"
-    send "docker exec -it confs-${target_party_id}_python_1 bash\r"
-    expect "#"
-    send "mkdir -p $project\r"
-    expect "#"
-    send "exit\r"
-	expect "#"
-	send "docker cp $datapath confs-${target_party_id}_python_1:/data/projects/fate/python/${project}/data.csv\r"
-	expect "#"
-	send "docker cp ~/script.py confs-${target_party_id}_python_1:/data/projects/fate/python/${project}/\r"
-    expect "#"
-    send "docker exec -it confs-${target_party_id}_python_1 bash\r"
-    expect "#"
-    send "cd ${project}\r"
-    expect "#"
-    send "python script.py -f upload -tb $table_name -dp /data/projects/fate/python/${project}/data.csv -proj $project\r"
-    expect "#"
-	send "rm ~/script.py\r"
-	expect "#"
-    send "exit\r"
-	expect "#"
-EOF
-    echo "party $target_party_id upload dataset is ok!"
 }
 
 DeleteCluster() {
