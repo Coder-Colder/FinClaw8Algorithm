@@ -240,7 +240,7 @@ EOF
 	expect eof
 EOF
 /usr/bin/expect <<EOF
-	spawn ssh $user@$target_party_serving_ip
+	spawn ssh $user@$target_party_ip
 	expect {
 		"(yes/no)?" {
 			send "yes\n"
@@ -401,7 +401,7 @@ EOF
     expect "#"
     send "cd ${project}\r"
     expect "#"
-    send "python3 script.py -f upload -tb $table_name -proj $project -dp /data/projects/fate/python/${project}/data.csv\r"
+    send "python script.py -f upload -tb $table_name -proj $project -dp /data/projects/fate/python/${project}/data.csv\r"
     expect "#"
     send "exit\r"
 	expect "#"
