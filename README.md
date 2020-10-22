@@ -53,21 +53,21 @@ docker load -i fate_1.4.4-images.tar.gz
    optional arguments:
    -h, --help              show this help message and exit
    -f {deploy, submit,delete}, --function {deploy, submit,delete}
-                           指明脚本需要完成的任务，支持选项为deploy, 						 submit,delte
+                           指明脚本需要完成的任务，支持选项为deploy,submit,delte
    -u [USERS [USERS ...]], --users [USERS [USERS ...]]
                            该命令暂时无效，默认使用root用户
    -pw PASSWORD [PASSWORD ...], --password PASSWORD [PASSWORD ...]
-                           各方（参与方和监管方）主机上用户的密码，默						 认给出的第一个密码为监管方主机上的用户
+                           各方（参与方和监管方）主机上用户的密码，默认给出的第一个密码为监管方主机上的用户
    -id ID [ID ...], --id ID [ID ...]
-                           系统为参与训练任务的各方指定的全局唯一id,						  默认给出第一个id为监管方的id
+                           系统为参与训练任务的各方指定的全局唯一id,默认给出第一个id为监管方的id
    -ip IP [IP ...], --ip IP [IP ...]
-                           参与训练任务的各方主机的ipv4地址,默认给出							的第一个ip为监管方的ip
+                           参与训练任务的各方主机的ipv4地址,默认给出的第一个ip为监管方的ip
    -p dataPath [dataPath ...], --path dataPath [dataPath ...]
-                           参与训练任务的各方主机上的数据集路径（绝						对路径）, 默认给出的第一个dataPath为监管						 方主机上的数据集路径
+                           参与训练任务的各方主机上的数据集路径（绝对路径）, 默认给出的第一个dataPath为监管方主机上的数据集路径
    -proj PROJECT, --project PROJECT
                            本次训练任务的名字
    -alg {SecureBoost}, --algorithm {SecureBoost}
-    						配置使用的机器学习算法，支持选项：
+                           配置使用的机器学习算法，支持选项：
    ```
 
 3. 特别说明：
