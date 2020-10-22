@@ -30,7 +30,7 @@ wget https://webank-ai-1251170195.cos.ap-guangzhou.myqcloud.com/fate_1.4.4-image
 docker load -i fate_1.4.4-images.tar.gz
 ```
 
-部署完成后，将算法组脚本文件`script.py`...拷贝至前述解压得到的目录`docker-deploy`下
+部署完成后，将算法组脚本文件`script.py`和`docker_deploy.sh`拷贝至前述解压得到的目录`docker-deploy`下，直接替换掉原目录中的`docker_deploy.sh`文件
 
 
 

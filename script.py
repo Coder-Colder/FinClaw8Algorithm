@@ -129,7 +129,8 @@ def deploy():
 
 def upload():
     create_upload_json(args.datapath, args.project, args.tablename)
-    os.system(" ".join(["python", fate_flow_path, "-f", "upload", "-c", UPLOAD_JSON_PATH]))
+    ret = run_cmd(["python", fate_flow_path, "-f", "upload", "-c", UPLOAD_JSON_PATH])
+    print(ret)
 
 
 def delete():

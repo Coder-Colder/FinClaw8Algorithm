@@ -252,8 +252,6 @@ EOF
 		}
 	}
 	expect "#"
-	send "ls\r"
-	expect "#"
 	send "cd $dir\r"
 	expect "#"
 	send "cd confs-$target_party_id\r"
@@ -263,6 +261,10 @@ EOF
     send "exit\r"
 EOF
 	echo "party ${target_party_id} deploy is ok!"
+}
+
+DeployPartyUpload() {
+
 }
 
 DeployPartyServing() {
@@ -347,29 +349,6 @@ EOF
 	expect "#"
     send "exit\r"
 EOF
-/usr/bin/expect <<EOF
-	spawn ssh $user@$target_party_serving_ip
-	expect {
-		"(yes/no)?" {
-			send "yes\n"
-			expect "password:"
-			send "$password\n"
-		}
-		"password:" {
-			send "$password\n"
-		}
-	}
-	expect "#"
-	send "ls\r"
-	expect "#"
-	send "cd $dir\r"
-	expect "#"
-	send "cd serving-$target_party_id\r"
-	expect "#"
-	send "docker-compose up -d\r"
-	expect "#"
-    send "exit\r"
-EOF
 	echo "party $target_party_id serving cluster deploy is ok!"
 
 /usr/bin/expect<<EOF
@@ -401,11 +380,11 @@ EOF
     expect "#"
     send "cd ${project}\r"
     expect "#"
-    send "python script.py -f upload -tb $table_name -proj $project -dp /data/projects/fate/python/${project}/data.csv\r"
+    send "python script.py -f upload -tb $table_name -dp /data/projects/fate/python/${project}/data.csv -proj $project\r"
     expect "#"
-    send "exit\r"
-	expect "#"
 	send "rm ~/script.py\r"
+	expect "#"
+    send "exit\r"
 	expect "#"
 EOF
     echo "party $target_party_id upload dataset is ok!"
