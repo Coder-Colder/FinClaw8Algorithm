@@ -177,6 +177,7 @@ DeployPartyInternal() {
 	#ssh -tt $user@$target_party_ip <<eeooff
 
 /usr/bin/expect <<EOF
+    set timeout 300
 	spawn scp ${WORKINGDIR}/outputs/confs-$target_party_id.tar $user@$target_party_ip:~/
 	expect {
 		"(yes/no)?" {
@@ -194,6 +195,7 @@ EOF
 	echo "$target_party_ip training cluster copy is ok!"
 
 /usr/bin/expect <<EOF
+    set timeout 300
 	spawn ssh $user@$target_party_ip
 	expect {
 		"(yes/no)?" {
@@ -233,27 +235,6 @@ EOF
 	send "exit\r"
 	expect eof
 EOF
-/usr/bin/expect <<EOF
-	spawn ssh $user@$target_party_ip
-	expect {
-		"(yes/no)?" {
-			send "yes\n"
-			expect "password:"
-			send "$password\n"
-		}
-		"password:" {
-			send "$password\n"
-		}
-	}
-	expect "#"
-	send "cd $dir\r"
-	expect "#"
-	send "cd confs-$target_party_id\r"
-	expect "#"
-	send "docker-compose up -d\r"
-	expect "#"
-    send "exit\r"
-EOF
 	echo "party ${target_party_id} deploy is ok!"
 }
 
@@ -284,6 +265,7 @@ DeployPartyUpload() {
 	fi
 
 /usr/bin/expect <<EOF
+    set timeout 300
 	spawn scp ${WORKINGDIR}/script.py $user@$target_party_ip:~/
 	expect {
 		"(yes/no)?" {
@@ -299,6 +281,7 @@ DeployPartyUpload() {
 EOF
 
 /usr/bin/expect<<EOF
+    set timeout 300
     spawn ssh $user@$target_party_serving_ip
 	expect {
 		"(yes/no)?" {
@@ -310,6 +293,8 @@ EOF
 			send "$password\n"
 		}
 	}
+	expect "#"
+	send "ls\r"
 	expect "#"
 	send "docker ps\r"
     expect "#"
@@ -334,6 +319,7 @@ EOF
 	send "rm ~/script.py\r"
 	expect "#"
     send "exit\r"
+    expect eof
 EOF
     echo "party $target_party_id upload dataset is ok!"
 }
@@ -368,6 +354,7 @@ DeployPartyServing() {
 	#echo "party $target_party_id serving cluster copy is ok!"
 	#ssh -tt $user@$target_party_serving_ip <<eeooff
 /usr/bin/expect <<EOF
+    set timeout 300
 	spawn scp ${WORKINGDIR}/outputs/serving-$target_party_id.tar $user@$target_party_serving_ip:~/
 	expect {
 		"(yes/no)?" {
@@ -384,6 +371,7 @@ EOF
 	echo "party $target_party_id serving cluster copy is ok!"
 
 /usr/bin/expect <<EOF
+    set timeout 300
 	spawn ssh $user@$target_party_serving_ip
 	expect {
 		"(yes/no)?" {
@@ -417,6 +405,7 @@ EOF
 	send "rm -f ../serving-$target_party_id.tar\r"
 	expect "#"
     send "exit\r"
+    expect eof
 EOF
 	echo "party $target_party_id serving cluster deploy is ok!"
 }
@@ -447,6 +436,7 @@ DeleteCluster() {
 	# delete training cluster
 	if [ "$cluster_type" == "--training" ]; then
 /usr/bin/expect <<EOF
+        set timeout 300
 		spawn ssh $user@$target_party_ip
 		expect {
 			"(yes/no)?" {
@@ -471,6 +461,7 @@ EOF
 	# delete serving cluster
 	elif [ "$cluster_type" == "--serving" ]; then
 /usr/bin/expect <<EOF
+        set timeout 300
 		spawn ssh $user@$target_party_serving_ip
 		expect {
 			"(yes/no)?" {
@@ -497,6 +488,7 @@ EOF
 		# if party is exchange then delete exchange cluster
 		if [ "$target_party_id" == "exchange" ]; then
 /usr/bin/expect <<EOF
+        set timeout 300
 		spawn ssh $user@$target_party_ip
 		expect {
 			"(yes/no)?" {
@@ -519,6 +511,7 @@ EOF
 			#ssh -tt $user@$target_party_ip 
 		else
 /usr/bin/expect <<EOF
+        set timeout 300
 		spawn ssh $user@$target_party_ip
 		expect {
 			"(yes/no)?" {
@@ -541,6 +534,7 @@ EOF
 			#ssh -tt $user@$target_party_ip 
 			echo "party $target_party_id training cluster is deleted!"
 /usr/bin/expect <<EOF
+            set timeout 300
 			spawn ssh $user@$target_party_serving_ip
 			expect {
 				"(yes/no)?" {
