@@ -48,7 +48,7 @@ docker load -i fate_1.4.4-images.tar.gz
                     [-id ID [ID ...]] [-ip IP [IP ...]]
                     [-p dataPath [dataPath ...]] 
                     [-proj PROJECT]
-                    [-alg {SecureBoost}]
+                    [-alg {hetero_lr, hetero_linr, example}]
    
    optional arguments:
    -h, --help              show this help message and exit
@@ -66,8 +66,8 @@ docker load -i fate_1.4.4-images.tar.gz
                            参与训练任务的各方主机上的数据集路径（绝对路径）, 默认给出的第一个dataPath为监管方主机上的数据集路径
    -proj PROJECT, --project PROJECT
                            本次训练任务的名字
-   -alg {SecureBoost}, --algorithm {SecureBoost}
-                           配置使用的机器学习算法，支持选项：
+   -alg {hetero_lr, hetero_linr, example}, --algorithm {hetero_lr, hetero_linr, example}
+                           配置使用的机器学习算法，支持选项：hetero_lr, hetero_linr, example.其中example为最简单的加法同态加密测试
    ```
 
 3. 特别说明：

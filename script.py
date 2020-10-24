@@ -8,6 +8,9 @@ PARTIES_PATH = "./parties.conf"
 DATA_PATH = os.path.join(os.curdir, 'train_data.csv')
 
 fate_flow_path = "../fate_flow/fate_flow_client.py"
+run_task_path = "./run_task_script/run_task.py"
+job_conf_path = "./run_task_script/config/test_hetero_linr_train_job_conf.json"
+job_dsl_path = "./run_task_script/config/test_hetero_linr_train_job_dsl.json"
 #dsl_path = os.path.join(home_dir, "toy_example_dsl.json")
 #conf_path = os.path.join(home_dir, "toy_example_conf.json")
 
@@ -43,7 +46,6 @@ mysql_db=fate_flow
 redis_ip=redis
 redis_port=6379
 redis_password=fate_dev''')
-    f.close()
 
 
 # 创建上传数据文件
@@ -57,7 +59,6 @@ def create_upload_json(data_path, task_name, table_name: str):
     upload_dict["table_name"] = table_name
     with open(UPLOAD_JSON_PATH, 'w') as f:
         json.dump(upload_dict, f, sort_keys=True, indent=4, separators=(', ', ':'))
-    f.close()
 
 
 # Argument Parser
@@ -97,7 +98,7 @@ parser.add_argument("-dp", "--datapath", type=str,
 parser.add_argument("-tb", "--tablename", type=str,
                     help="name of data table to configure upload.json. Need to specify when using '-f upload'")
 
-parser.add_argument("-alg", "--algorithm", type=str, choices=["SecureBoost"],
+parser.add_argument("-alg", "--algorithm", type=str, choices=["hetero_lr", "hetero_linr", "example"],
                     help="configure the Machine Learning Algorithm.")
 
 args = parser.parse_args()
@@ -138,14 +139,14 @@ def delete():
     os.system("bash ./docker_deploy.sh --delete all")
 
 
-def submit():
-    pass
+def submit(alg, proj):
+    os.system("bash ./docker_deploy.sh --submit -alg {} -proj {}".format(alg, proj))
 
 
 if args.function == "deploy":
     deploy()
 elif args.function == "submit":
-    submit()
+    submit(args.algorithm, args.project)
 elif args.function == "upload":
     upload()
 elif args.function == "delete":

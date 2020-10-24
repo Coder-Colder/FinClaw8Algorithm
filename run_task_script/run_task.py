@@ -124,7 +124,7 @@ class TaskManager(object):
 
 
 class TrainTask(TaskManager):
-    def __init__(self, data_type, guest_id, host_id, arbiter_id, work_mode):
+    def __init__(self, data_type, project_name, table_name, guest_id, host_id, arbiter_id, work_mode):
         self.method = 'all'
         self.guest_id = guest_id
         self.host_id = host_id
@@ -135,26 +135,26 @@ class TrainTask(TaskManager):
         self.model_version = None
         self.dsl_file = None
         self.train_component_name = None
-        self._parse_argv()
+        self._parse_argv(project_name, table_name)
 
-    def _parse_argv(self):
+    def _parse_argv(self, project_name, table_name):
 
         if self._data_type == 'fast':
             self.task_data_count = 569
             self.task_intersect_count = 569
             self.auc_base = 0.98
-            self.guest_table_name = "breast_hetero_guest"
-            self.guest_namespace = "experiment"
-            self.host_name = "breast_hetero_host"
-            self.host_namespace = "experiment"
+            self.guest_table_name = table_name[0]
+            self.guest_namespace = project_name
+            self.host_name = table_name
+            self.host_namespace = project_name
         elif self._data_type == "normal":
             self.task_data_count = 30000
             self.task_intersect_count = 30000
             self.auc_base = 0.69
-            self.guest_table_name = "default_credit_hetero_guest"
-            self.guest_namespace = "experiment"
-            self.host_name = "default_credit_hetero_host"
-            self.host_namespace = "experiment"
+            self.guest_table_name = table_name[0]
+            self.guest_namespace = project_name
+            self.host_name = table_name
+            self.host_namespace = project_name
         else:
             raise ValueError("Unknown data type:{}".format(self._data_type))
 
@@ -166,8 +166,8 @@ class TrainTask(TaskManager):
 
     def run(self, start_serving=0):
         config_dir_path = self._make_runtime_conf()
-        start_task_cmd = ['python', fate_flow_path, "-f", "submit_job", "-c",
-                          config_dir_path, "-d", self.dsl_file]
+        start_task_cmd = ['python', fate_flow_path, "-f", "submit_job", "-d", self.dsl_file,
+                        "-c", config_dir_path]
         stdout = self.start_task(start_task_cmd)
         status = stdout["retcode"]
 
@@ -275,7 +275,7 @@ class TrainTask(TaskManager):
         json_info["service_id"] = self.model_id
         json_info["initiator"]["party_id"] = str(self.guest_id)
         json_info["role"]["guest"] = [str(self.guest_id)]
-        json_info["role"]["host"] = [str(self.host_id)]
+        json_info["role"]["host"] = self.host_id
         json_info["role"]["arbiter"] = [str(self.arbiter_id)]
         json_info["job_parameters"]["work_mode"] = self.work_mode
         json_info["job_parameters"]["model_id"] = self.model_id
@@ -448,8 +448,8 @@ def replicate_properties(json_dict: dict, host_num: int):
 
 
 class TrainMultiHostTask(TrainTask):
-    def __init__(self, algorithm_name, data_type, guest_id, host_id, arbiter_id, work_mode):
-        super().__init__(data_type, guest_id, host_id, arbiter_id, work_mode)
+    def __init__(self, algorithm_name, project_name, table_name, data_type, guest_id, host_id, arbiter_id, work_mode):
+        super().__init__(data_type, project_name, table_name, guest_id, host_id, arbiter_id, work_mode)
         self.dsl_file, self.train_component_name, self.input_template = get_configuration_file(algorithm_name)
 
     def _make_runtime_conf(self, conf_type='train'):
@@ -459,7 +459,7 @@ class TrainMultiHostTask(TrainTask):
             json_info = json.loads(f.read())
 
         json_info['role']['guest'] = [self.guest_id]
-        json_info['role']['host'] = [self.host_id]
+        json_info['role']['host'] = self.host_id     # Fix
         json_info['role']['arbiter'] = [self.arbiter_id]
 
         host_num = len(self.host_id)
@@ -480,13 +480,13 @@ class TrainMultiHostTask(TrainTask):
         else:
             json_info["role_parameters"]["guest"]["args"]["data"]["eval_data"] = [table_info]
 
-        table_info = {"name": self.host_name,
-                      "namespace": self.host_namespace}
+        table_info = [{"name": i,
+                      "namespace": self.host_namespace} for i in self.host_name]
         if conf_type == 'train':
-            json_info["role_parameters"]["host"]["args"]["data"]["train_data"] = [table_info]
-            json_info["role_parameters"]["host"]["args"]["data"]["eval_data"] = [table_info]
+            json_info["role_parameters"]["host"]["args"]["data"]["train_data"] = table_info
+            json_info["role_parameters"]["host"]["args"]["data"]["eval_data"] = table_info
         else:
-            json_info["role_parameters"]["host"]["args"]["data"]["eval_data"] = [table_info]
+            json_info["role_parameters"]["host"]["args"]["data"]["eval_data"] = table_info
 
         # 对于过个host情况，需要将各个属性值进行拷贝
         if host_num != 1:
@@ -513,6 +513,8 @@ def main():
 
     arg_parser.add_argument("-m", "--mode", type=int, help="work mode", choices=[0, 1], required=True)
     arg_parser.add_argument("-alg", "--algorithm", type=str, help="algorithm module to use", required=True)
+    arg_parser.add_argument("-proj", "--project", type=str, help="project name", required=True)
+    arg_parser.add_argument("-t", "--table", nargs='+', type=str, help="table name", required=True)
     arg_parser.add_argument("-f", "--file_type", type=str,
                             help="file_type, "
                                  "'fast' means breast data "
@@ -540,8 +542,10 @@ def main():
     add_sbt = args.add_sbt
     start_serving = args.serving
     algorithm_name = args.algorithm
+    project_name = args.project
+    table_name = args.table
 
-    task = TrainMultiHostTask(algorithm_name, file_type, guest_id, host_id, arbiter_id, work_mode)
+    task = TrainMultiHostTask(algorithm_name, project_name, table_name, file_type, guest_id, host_id, arbiter_id, work_mode)
     task.run()
     # task = TrainLRTask(file_type, guest_id, host_id, arbiter_id, work_mode)
     # task.run(start_serving)

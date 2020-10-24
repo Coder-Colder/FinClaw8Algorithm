@@ -266,7 +266,7 @@ DeployPartyUpload() {
 
 /usr/bin/expect <<EOF
     set timeout 300
-	spawn scp ${WORKINGDIR}/script.py $user@$target_party_ip:~/
+	spawn scp ${WORKINGDIR}/script.py $user@$target_party_serving_ip:~/
 	expect {
 		"(yes/no)?" {
 			send "yes\n"
@@ -436,50 +436,50 @@ DeleteCluster() {
 	# delete training cluster
 	if [ "$cluster_type" == "--training" ]; then
 /usr/bin/expect <<EOF
-        set timeout 300
-		spawn ssh $user@$target_party_ip
-		expect {
-			"(yes/no)?" {
-				send "yes\n"
-				expect "password:"
-				send "$password\n"
-			}
-			"password:" {
-				send "$password\n"
-			}
-		} 
-		expect "#"
-		send "cd $dir/confs-$target_party_id\r"
-		expect "#"
-		send "docker-compose down\r"
-		expect "#"
-		send "exit\r"
-		expect eof
+    set timeout 300
+	spawn ssh $user@$target_party_ip
+	expect {
+		"(yes/no)?" {
+			send "yes\n"
+			expect "password:"
+			send "$password\n"
+		}
+		"password:" {
+			send "$password\n"
+		}
+	}
+	expect "#"
+	send "cd $dir/confs-$target_party_id\r"
+	expect "#"
+	send "docker-compose down\r"
+	expect "#"
+	send "exit\r"
+	expect eof
 EOF
 		#ssh -tt $user@$target_party_ip 
 		echo "party $target_party_id training cluster is deleted!"
 	# delete serving cluster
 	elif [ "$cluster_type" == "--serving" ]; then
 /usr/bin/expect <<EOF
-        set timeout 300
-		spawn ssh $user@$target_party_serving_ip
-		expect {
-			"(yes/no)?" {
-				send "yes\n"
-				expect "password:"
-				send "$password\n"
-			}
-			"password:" {
-				send "$password\n"
-			}
+    set timeout 300
+	spawn ssh $user@$target_party_serving_ip
+	expect {
+		"(yes/no)?" {
+			send "yes\n"
+			expect "password:"
+			send "$password\n"
 		}
-		expect "#"
-		send "cd $dir/serving-$target_party_id\r"
-		expect "#"
-		send "docker-compose down\r"
-		expect "#"
-		send "exit\r"
-		expect eof
+		"password:" {
+			send "$password\n"
+		}
+	}
+	expect "#"
+	send "cd $dir/serving-$target_party_id\r"
+	expect "#"
+	send "docker-compose down\r"
+	expect "#"
+	send "exit\r"
+	expect eof
 EOF
 		#ssh -tt $user@$target_party_serving_ip 
 		echo "party $target_party_id serving cluster is deleted!"
@@ -488,71 +488,71 @@ EOF
 		# if party is exchange then delete exchange cluster
 		if [ "$target_party_id" == "exchange" ]; then
 /usr/bin/expect <<EOF
-        set timeout 300
-		spawn ssh $user@$target_party_ip
-		expect {
-			"(yes/no)?" {
-				send "yes\n"
-				expect "password:"
-				send "$password\n"
-			}
-			"password:" {
-				send "$password\n"
-			}
+    set timeout 300
+	spawn ssh $user@$target_party_ip
+	expect {
+		"(yes/no)?" {
+			send "yes\n"
+			expect "password:"
+			send "$password\n"
 		}
-		expect "#"
-		send "cd $dir/confs-$target_party_id\r"
-		expect "#"
-		send "docker-compose down\r"
-		expect "#"
-		send "exit\r"
-		expect eof
+		"password:" {
+			send "$password\n"
+		}
+	}
+	expect "#"
+	send "cd $dir/confs-$target_party_id\r"
+	expect "#"
+	send "docker-compose down\r"
+	expect "#"
+	send "exit\r"
+	expect eof
 EOF
 			#ssh -tt $user@$target_party_ip 
 		else
 /usr/bin/expect <<EOF
-        set timeout 300
-		spawn ssh $user@$target_party_ip
-		expect {
-			"(yes/no)?" {
-				send "yes\n"
-				expect "password:"
-				send "$password\n"
-			}
-			"password:" {
-				send "$password\n"
-			}
+    set timeout 300
+	spawn ssh $user@$target_party_ip
+	expect {
+		"(yes/no)?" {
+			send "yes\n"
+			expect "password:"
+			send "$password\n"
 		}
-		expect "#"
-		send "cd $dir/confs-$target_party_id\r"
-		expect "#"
-		send "docker-compose down\r"
-		expect "#"
-		send "exit\r"
-		expect eof
+		"password:" {
+			send "$password\n"
+		}
+	}
+	expect "#"
+	send "cd $dir/confs-$target_party_id\r"
+	expect "#"
+	send "docker-compose down\r"
+	expect "#"
+	send "exit\r"
+	expect eof
 EOF
 			#ssh -tt $user@$target_party_ip 
 			echo "party $target_party_id training cluster is deleted!"
 /usr/bin/expect <<EOF
-            set timeout 300
-			spawn ssh $user@$target_party_serving_ip
-			expect {
-				"(yes/no)?" {
-					send "yes\n"
-					expect "password:"
-					send "$password\n"
-				}
-				"password:" {
-					send "$password\n"
-				}
-			}
-			expect "#"
-			send "cd $dir/serving-$target_party_id\r"
-			expect "#"
-			send "docker-compose down\r"
-			expect "#"
-			send "exit\r"
-			expect eof
+    set timeout 300
+	spawn ssh $user@$target_party_serving_ip
+	expect {
+		"(yes/no)?" {
+			send "yes\n"
+			expect "password:"
+			send "$password\n"
+		}
+		"password:" {
+			send "$password\n"
+		}
+	}
+	expect "#"
+	send "cd $dir/serving-$target_party_id\r"
+	expect "#"
+	send "docker-compose down\r"
+	expect "#"
+	send "exit\r"
+	expect eof
 EOF
 			#ssh -tt $user@$target_party_serving_ip 
 			echo "party $target_party_id serving cluster is deleted!"
@@ -565,6 +565,62 @@ ShowUsage() {
 	echo "Deploy all parties or specified partie(s): bash docker_deploy.sh partyid1[partyid2...] | all"
 }
 
+Submit() {
+	alg=$3
+	project=$5
+	table_name=${table_names}
+	gid=${partylist[0]}
+	hid=${partylist[@]:1:${#partylist[@]}}
+	target_party_ip=${partyiplist[0]}
+	password=${passwords[0]}
+/usr/bin/expect<<EOF
+    set timeout 300
+    spawn scp -r ${WORKINGDIR}/run_task_script $user@$target_party_ip:~/
+	expect {
+		"(yes/no)?" {
+			send "yes\n"
+			expect "password:"
+			send "$password\n"
+		}
+		"password:" {
+			send "$password\n"
+		}
+	}
+	expect eof
+EOF
+
+/usr/bin/expect<<EOF
+    set timeout 300
+    spawn ssh $user@$target_party_ip
+	expect {
+		"(yes/no)?" {
+			send "yes\n"
+			expect "password:"
+			send "$password\n"
+		}
+		"password:" {
+			send "$password\n"
+		}
+	}
+	expect "#"
+	send "docker cp ~/run_task_script confs-${gid}_python_1:/data/projects/fate/python/${project}/run_task_script\r"
+	expect "#"
+	send "rm -rf ~/run_task_script\r"
+	expect "#"
+	send "docker exec -it confs-${gid}_python_1 bash\r"
+	expect "#"
+	send "cd ${project}/\r"
+	expect "#"
+	send "python ./run_task_script/run_task.py -m 1 -alg ${alg} -proj ${project} -t ${table_name} -gid ${gid} -hid ${hid} -aid ${gid}\r"
+	expect "#"
+    send "exit\r"
+    expect "#"
+    send "exit\r"
+    expect eof
+EOF
+}
+
+
 main() {
 	if [ "$1" = "" ] || [ "$" = "--help" ]; then
 		ShowUsage
@@ -572,6 +628,8 @@ main() {
 	elif [ "$1" = "--delete" ] || [ "$1" = "--del" ]; then
 		shift
 		Delete $@
+	elif [ "$1" = "--submit" ]; then
+		Submit "$@"
 	else
 		Deploy "$@"
 	fi
