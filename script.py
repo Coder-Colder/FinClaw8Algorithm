@@ -133,7 +133,7 @@ def deploy():
     create_parties_json(args.project, args.ip, args.id, args.password, args.path, users)
     run_cmd(["bash", "./generate_config.sh"])
     run_cmd(["bash", "./docker_deploy.sh", "all"])
-    print("ok")
+    print("success")
 
 
 def upload():
@@ -171,40 +171,58 @@ def submit(alg, proj, gid, hid):
 
     #print(guestip, usr, tlist, pswd)
 
+    cmds = ["docker cp ~/run_task_script.tar.gz confs-{gid}_python_1:/data/projects/fate/python/{project}/run_task_script.tar.gz".format(gid=gid, project=proj),
+           "rm -rf ~/run_task_script.tar.gz",
+           "cd {project}/".format(project=proj),
+           "docker exec -it confs-{gid}_python_1 bash".format(gid=gid),
+           "cd {project}/".format(project=proj),
+           "tar zxvf run_task_script.tar.gz",
+           "python ./run_task_script/run_task.py -m 1 -alg {alg} -proj {project} -t {table_name} -gid {gid} -hid {hid} -aid {gid}".format(
+               alg=alg, project=proj, table_name=tlist, gid=gid, hid=" ".join(hid)),
+           "exit",
+           "exit"
+           ]
+
     os.system("tar -zcvf run_task_script.tar.gz ./run_task_script")
     trans = paramiko.Transport((guestip, 22))
     trans.connect(username=usr, password=pswd)
     sftp = paramiko.SFTP.from_transport(trans)
-    sftp.put("./run_task_script.tar.gz", "~/")
+    sftp.put("./run_task_script.tar.gz", "~/run_task_script.tar.gz")
     trans.close()
     ssh = paramiko.SSHClient()
     policy = paramiko.AutoAddPolicy()
     ssh.set_missing_host_key_policy(policy)
     ssh.connect(guestip, 22, usr, pswd)
-    stdin, stdout, stderr = ssh.exec_command("docker cp ~/run_task_script.tar.gz confs-{gid}_python_1:/data/projects/fate/python/{project}/run_task_script".format(gid=gid, project=proj))
-    print(stdout.decode("utf-8"))
-    stdin, stdout, stderr = ssh.exec_command("rm -rf ~/run_task_script.tar.gz")
-    print(stdout.decode("utf-8"))
-    stdin, stdout, stderr = ssh.exec_command("docker exec -it confs-{gid}_python_1 bash".format(gid=gid))
-    print(stdout.decode("utf-8"))
-    stdin, stdout, stderr = ssh.exec_command("cd {project}/".format(project=proj))
-    print(stdout.decode("utf-8"))
-    stdin, stdout, stderr = ssh.exec_command("tar zxvf run_task_script.tar.gz".format(gid))
-    print(stdout.decode("utf-8"))
-    stdin, stdout, stderr = ssh.exec_command("python ./run_task_script/run_task.py -m 1 -alg {alg} -proj {project} -t {table_name} -gid {gid} -hid {hid} -aid {gid}".format(alg=alg, project=proj, table_name=tlist, gid=gid, hid=" ".join(hid), gid=gid))
-    print(stdout.decode("utf-8"))
-    stdout = json.load(stdout)
-    if stdout["retcode"] != 0:
-        print("failed!")
-        return None
-    model_id = stdout['data']['model_info']["model_id"]
-    model_version = stdout['data']['model_info']["model_version"]
-    job_id = stdout["job_id"]
-    stdin, stdout, stderr = ssh.exec_command("exit")
-    print(stdout.decode("utf-8"))
-    stdin, stdout, stderr = ssh.exec_command("exit")
-    print(stdout.decode("utf-8"))
-    print(model_id, model_version, job_id)
+    stdin, stdout, stderr = ssh.exec_command(" && ".join(cmds))
+    print(stdout.read().decode("utf-8"))
+    print(stderr.read().decode("utf-8"))
+    # stdin, stdout, stderr = ssh.exec_command(
+    #     "docker cp ~/run_task_script.tar.gz confs-{gid}_python_1:/data/projects/fate/python/{project}/run_task_script".format(
+    #         gid=gid, project=proj))
+    # print(stdout.read().decode("utf-8"))
+    # ssh.connect(guestip, 22, usr, pswd)
+    # stdin, stdout, stderr = ssh.exec_command("rm -rf ~/run_task_script.tar.gz")
+    # print(stdout.read().decode("utf-8"))
+    # stdin, stdout, stderr = ssh.exec_command("docker exec -it confs-{gid}_python_1 bash".format(gid=gid))
+    # print(stdout.read().decode("utf-8"))
+    # stdin, stdout, stderr = ssh.exec_command("cd {project}/".format(project=proj))
+    # print(stdout.read().decode("utf-8"))
+    # stdin, stdout, stderr = ssh.exec_command("tar zxvf run_task_script.tar.gz")
+    # print(stdout.read().decode("utf-8"))
+    # stdin, stdout, stderr = ssh.exec_command("python ./run_task_script/run_task.py -m 1 -alg {alg} -proj {project} -t {table_name} -gid {gid} -hid {hid} -aid {gid}".format(alg=alg, project=proj, table_name=tlist, gid=gid, hid=" ".join(hid)))
+    # print(stdout.read().decode("utf-8"))
+    # stdout = json.load(stdout)
+    # if stdout["retcode"] != 0:
+    #     print("failed!")
+    #     return None
+    # model_id = stdout['data']['model_info']["model_id"]
+    # model_version = stdout['data']['model_info']["model_version"]
+    # job_id = stdout["job_id"]
+    # stdin, stdout, stderr = ssh.exec_command("exit")
+    # print(stdout.read().decode("utf-8"))
+    # stdin, stdout, stderr = ssh.exec_command("exit")
+    # print(stdout.read().decode("utf-8"))
+    # print(model_id, model_version, job_id)
 
 
 
