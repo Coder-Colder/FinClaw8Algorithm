@@ -133,6 +133,7 @@ def deploy():
     create_parties_json(args.project, args.ip, args.id, args.password, args.path, users)
     run_cmd(["bash", "./generate_config.sh"])
     run_cmd(["bash", "./docker_deploy.sh", "all"])
+    print("ok")
 
 
 def upload():
