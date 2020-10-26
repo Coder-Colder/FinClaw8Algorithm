@@ -177,29 +177,36 @@ def submit(alg, proj, gid, hid):
             table = tlist[idx]
             tlist.pop(idx)
             newlist = [table]
-            newlist.append(tlist)
+            newlist.extend(tlist)
             tlist = " ".join(newlist)
 
     #print(guestip, usr, tlist, pswd)
-
-    cmds = ["docker cp ~/run_task_script.tar.gz confs-{gid}_python_1:/data/projects/fate/python/{project}/run_task_script.tar.gz".format(gid=gid, project=proj),
-           "rm -rf ~/run_task_script.tar.gz",
-           "cd {project}/".format(project=proj),
-           "docker exec -it confs-{gid}_python_1 bash".format(gid=gid),
-           "cd {project}/".format(project=proj),
-           "tar zxvf run_task_script.tar.gz",
-           "python ./run_task_script/run_task.py -m 1 -alg {alg} -proj {project} -t {table_name} -gid {gid} -hid {hid} -aid {gid}".format(
-               alg=alg, project=proj, table_name=tlist, gid=gid, hid=" ".join(hid)),
-           "exit",
-           "exit"
-           ]
 
     os.system("tar -zcvf run_task_script.tar.gz ./run_task_script")
     trans = paramiko.Transport((guestip, 22))
     trans.connect(username=usr, password=pswd)
     sftp = paramiko.SFTP.from_transport(trans)
-    sftp.put("./run_task_script.tar.gz", "~/run_task_script.tar.gz")
+    if usr == "root":
+        remote_path = "/root/run_task_script.tar.gz"
+    else:
+        remote_path = "/home/{usr}/run_task_script.tar.gz".format(usr=usr)
+    sftp.put("./run_task_script.tar.gz", remote_path)
     trans.close()
+
+    cmds = [
+        "docker cp {path} confs-{gid}_python_1:/data/projects/fate/python/{project}/run_task_script.tar.gz".format(
+            gid=gid, project=proj, path=remote_path),
+        "rm -rf {path}".format(path=remote_path),
+        "cd {project}/".format(project=proj),
+        '''docker exec -i confs-{gid}_python_1 bash<<EOF
+ cd {project}/
+ tar zxvf run_task_script.tar.gz
+ python ./run_task_script/run_task.py -m 1 -alg {alg} -proj {project} -t {table_name} -gid {gid} -hid {hid} -aid {gid}
+ exit
+ EOF'''.format(gid=gid, project=proj, alg=alg, table_name=tlist, hid=" ".join(hid)),
+        "exit"
+        ]
+
     ssh = paramiko.SSHClient()
     policy = paramiko.AutoAddPolicy()
     ssh.set_missing_host_key_policy(policy)
