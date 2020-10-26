@@ -2,6 +2,7 @@
 import json
 import os
 import logging
+import paramiko
 
 UPLOAD_JSON_PATH = os.path.join(os.curdir, 'upload_data.json')
 PARTIES_PATH = "./parties.conf"
@@ -99,7 +100,13 @@ parser.add_argument("-tb", "--tablename", type=str,
                     help="name of data table to configure upload.json. Need to specify when using '-f upload'")
 
 parser.add_argument("-alg", "--algorithm", type=str, choices=["hetero_lr", "hetero_linr", "example"],
-                    help="configure the Machine Learning Algorithm.")
+                    help="configure the Machine Learning Algorithm.Need to specify when using '-f submit'")
+
+parser.add_argument("-gid", "--guestid", type=str,
+                    help="guset id for training, Only one! Need to specify when using '-f submit' ")
+
+parser.add_argument("-hid", "--hostid", type=str, nargs='+',
+                    help="host id for training, a list! Need to specify when using '-f submit'")
 
 args = parser.parse_args()
 
@@ -124,29 +131,83 @@ def deploy():
     else:
         users = args.users
     create_parties_json(args.project, args.ip, args.id, args.password, args.path, users)
-    os.system("bash ./generate_config.sh")
-    os.system("bash ./docker_deploy.sh all")
+    run_cmd(["bash", "./generate_config.sh"])
+    run_cmd(["bash", "./docker_deploy.sh", "all"])
 
 
 def upload():
     create_upload_json(args.datapath, args.project, args.tablename)
     ret = eval(run_cmd(["python", fate_flow_path, "-f", "upload", "-c", UPLOAD_JSON_PATH]))
-    while ret["retcode"] != 0:
+    total_cnt = 20
+    i = 0
+    while ret["retcode"] != 0 and i < total_cnt:
         ret = eval(run_cmd(["python", fate_flow_path, "-f", "upload", "-c", UPLOAD_JSON_PATH]))
-    print(ret)
+        i += 1
 
 def delete():
-    os.system("bash ./docker_deploy.sh --delete all")
+    run_cmd(["bash", "./docker_deploy.sh", "--delete", "all"])
 
 
-def submit(alg, proj):
-    os.system("bash ./docker_deploy.sh --submit -alg {} -proj {}".format(alg, proj))
+
+def submit(alg, proj, gid, hid):
+    with open("./parties.conf", "r+", encoding="utf-8") as f:
+        for line in f.readlines():
+            if line.find("partyiplist") != -1:
+                line = line.strip("\n").strip("partyiplist=").strip("(").strip(")")
+                iplist = line.split(" ")
+                guestip = iplist[0]
+            elif line.find("users") != -1:
+                line = line.strip("\n").strip("users=").strip("(").strip(")")
+                ulist = line.split(" ")
+                usr = ulist[0]
+            elif line.find("table_names") != -1:
+                line = line.strip("\n").strip("table_names=").strip("(").strip(")")
+                tlist = line
+            elif line.find("passwords") != -1:
+                line = line.strip("\n").strip("passwords=").strip("(").strip(")")
+                plist = line.split(" ")
+                pswd = plist[0]
+
+    #print(guestip, usr, tlist, pswd)
+
+    trans = paramiko.Transport((guestip, 22))
+    trans.connect(username=usr, password=pswd)
+    sftp = paramiko.SFTP.from_transport(trans)
+    sftp.put("./run_task_script", "~/")
+    trans.close()
+    ssh = paramiko.SSHClient()
+    policy = paramiko.AutoAddPolicy()
+    ssh.set_missing_host_key_policy(policy)
+    ssh.connect(guestip, 22, usr, pswd)
+    stdin, stdout, stderr = ssh.exec_command("docker cp ~/run_task_script confs-{gid}_python_1:/data/projects/fate/python/{project}/run_task_script".format(gid, proj))
+    print(stdout.decode("utf-8"))
+    stdin, stdout, stderr = ssh.exec_command("rm -rf ~/run_task_script")
+    print(stdout.decode("utf-8"))
+    stdin, stdout, stderr = ssh.exec_command("docker exec -it confs-{gid}_python_1 bash".format(gid))
+    print(stdout.decode("utf-8"))
+    stdin, stdout, stderr = ssh.exec_command("cd {project}/".format(proj))
+    print(stdout.decode("utf-8"))
+    stdin, stdout, stderr = ssh.exec_command("python ./run_task_script/run_task.py -m 1 -alg {alg} -proj {project} -t {table_name} -gid {gid} -hid {hid} -aid {gid}".format(alg, proj, tlist, gid, " ".join(hid), gid))
+    print(stdout.decode("utf-8"))
+    stdout = json.load(stdout)
+    if stdout["retcode"] != 0:
+        print("failed!")
+        return None
+    model_id = stdout['data']['model_info']["model_id"]
+    model_version = stdout['data']['model_info']["model_version"]
+    job_id = stdout["job_id"]
+    stdin, stdout, stderr = ssh.exec_command("exit")
+    print(stdout.decode("utf-8"))
+    stdin, stdout, stderr = ssh.exec_command("exit")
+    print(stdout.decode("utf-8"))
+    print(model_id, model_version, job_id)
+
 
 
 if args.function == "deploy":
     deploy()
 elif args.function == "submit":
-    submit(args.algorithm, args.project)
+    submit(args.algorithm, args.project, args.guestid, args.hostid)
 elif args.function == "upload":
     upload()
 elif args.function == "delete":

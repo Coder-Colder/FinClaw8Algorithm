@@ -11,9 +11,13 @@ home_dir = os.path.split(os.path.realpath(__file__))[0]
 hetero_lr_config_file = home_dir + "/config/test_hetero_lr_train_job_conf.json"
 hetero_lr_dsl_file = home_dir + "/config/test_hetero_lr_train_job_dsl.json"
 
-# Hetero-lr task
+# Hetero-linr task
 hetero_linr_config_file = home_dir + "/config/test_hetero_linr_train_job_conf.json"
 hetero_linr_dsl_file = home_dir + "/config/test_hetero_linr_train_job_dsl.json"
+
+# example task
+example_config_file = home_dir + "/config/test_example_job_conf.json"
+example_dsl_file = home_dir + "/config/test_example_job_dsl.json"
 
 # hetero-sbt task
 hetero_sbt_config_file = home_dir + "/config/test_secureboost_train_binary_conf.json"
@@ -145,7 +149,7 @@ class TrainTask(TaskManager):
             self.auc_base = 0.98
             self.guest_table_name = table_name[0]
             self.guest_namespace = project_name
-            self.host_name = table_name
+            self.host_name = table_name[1:]
             self.host_namespace = project_name
         elif self._data_type == "normal":
             self.task_data_count = 30000
@@ -153,7 +157,7 @@ class TrainTask(TaskManager):
             self.auc_base = 0.69
             self.guest_table_name = table_name[0]
             self.guest_namespace = project_name
-            self.host_name = table_name
+            self.host_name = table_name[1:]
             self.host_namespace = project_name
         else:
             raise ValueError("Unknown data type:{}".format(self._data_type))
@@ -313,126 +317,14 @@ class TrainTask(TaskManager):
 
         return True
 
-
-class TrainLRTask(TrainTask):
-    def __init__(self, data_type, guest_id, host_id, arbiter_id, work_mode):
-        super().__init__(data_type, guest_id, host_id, arbiter_id, work_mode)
-        self.dsl_file = hetero_lr_dsl_file
-        self.train_component_name = 'hetero_lr_0'
-
-    def _make_runtime_conf(self, conf_type='train'):
-        if conf_type == 'train':
-            input_template = hetero_lr_config_file
-        else:
-            input_template = predict_task_file
-        with open(input_template, 'r', encoding='utf-8') as f:
-            json_info = json.loads(f.read())
-
-        json_info['role']['guest'] = [self.guest_id]
-        json_info['role']['host'] = [self.host_id]
-        json_info['role']['arbiter'] = [self.arbiter_id]
-
-        json_info['initiator']['party_id'] = self.guest_id
-        json_info['job_parameters']['work_mode'] = self.work_mode
-
-        if self.model_id is not None:
-            json_info["job_parameters"]["model_id"] = self.model_id
-            json_info["job_parameters"]["model_version"] = self.model_version
-
-        table_info = {"name": self.guest_table_name,
-                      "namespace": self.guest_namespace}
-        if conf_type == 'train':
-            json_info["role_parameters"]["guest"]["args"]["data"]["train_data"] = [table_info]
-            json_info["role_parameters"]["guest"]["args"]["data"]["eval_data"] = [table_info]
-        else:
-            json_info["role_parameters"]["guest"]["args"]["data"]["eval_data"] = [table_info]
-
-        table_info = {"name": self.host_name,
-                      "namespace": self.host_namespace}
-        if conf_type == 'train':
-            json_info["role_parameters"]["host"]["args"]["data"]["train_data"] = [table_info]
-            json_info["role_parameters"]["host"]["args"]["data"]["eval_data"] = [table_info]
-        else:
-            json_info["role_parameters"]["host"]["args"]["data"]["eval_data"] = [table_info]
-
-        config = json.dumps(json_info)
-        config_path = gen_unique_path('submit_job_guest')
-        config_dir_path = os.path.dirname(config_path)
-        os.makedirs(config_dir_path, exist_ok=True)
-        with open(config_path, "w") as fout:
-            fout.write(config + "\n")
-        return config_path
-
-    def _check_status(self, jobid):
-        params = [jobid]
-        job_status = self.start_block_func(self._check_cpn_status, params,
-                                           exit_func=self._check_exit, max_waiting_time=MAX_TRAIN_TIME)
-        if job_status == FAIL:
-            exit(1)
-
-
-class TrainSBTTask(TrainTask):
-    def __init__(self, data_type, guest_id, host_id, arbiter_id, work_mode):
-        super().__init__(data_type, guest_id, host_id, arbiter_id, work_mode)
-        self.dsl_file = hetero_sbt_dsl_file
-        self.train_component_name = 'secureboost_0'
-
-    def _make_runtime_conf(self, conf_type='train'):
-        if conf_type == 'train':
-            input_template = hetero_sbt_config_file
-        else:
-            input_template = predict_task_file
-        with open(input_template, 'r', encoding='utf-8') as f:
-            json_info = json.loads(f.read())
-
-        json_info['role']['guest'] = [self.guest_id]
-        json_info['role']['host'] = [self.host_id]
-
-        json_info['initiator']['party_id'] = self.guest_id
-        json_info['job_parameters']['work_mode'] = self.work_mode
-
-        if self.model_id is not None:
-            json_info["job_parameters"]["model_id"] = self.model_id
-            json_info["job_parameters"]["model_version"] = self.model_version
-
-        table_info = {"name": self.guest_table_name,
-                      "namespace": self.guest_namespace}
-        if conf_type == 'train':
-            json_info["role_parameters"]["guest"]["args"]["data"]["train_data"] = [table_info]
-            json_info["role_parameters"]["guest"]["args"]["data"]["eval_data"] = [table_info]
-        else:
-            json_info["role_parameters"]["guest"]["args"]["data"]["eval_data"] = [table_info]
-
-        table_info = {"name": self.host_name,
-                      "namespace": self.host_namespace}
-        if conf_type == 'train':
-            json_info["role_parameters"]["host"]["args"]["data"]["train_data"] = [table_info]
-            json_info["role_parameters"]["host"]["args"]["data"]["eval_data"] = [table_info]
-        else:
-            json_info["role_parameters"]["host"]["args"]["data"]["eval_data"] = [table_info]
-
-        config = json.dumps(json_info)
-        config_path = gen_unique_path('submit_job_guest')
-        config_dir_path = os.path.dirname(config_path)
-        os.makedirs(config_dir_path, exist_ok=True)
-        with open(config_path, "w") as fout:
-            fout.write(config + "\n")
-        return config_path
-
-    def _check_status(self, jobid):
-        params = [jobid]
-        job_status = self.start_block_func(self._check_cpn_status, params,
-                                           exit_func=self._check_exit, max_waiting_time=MAX_TRAIN_TIME)
-        if job_status == FAIL:
-            exit(1)
-
-
 # get the conf, dsl and component of the algorithm
 def get_configuration_file(algorithm_name):
     if algorithm_name == 'hetero_linr':
         return hetero_linr_dsl_file, 'hetero_linr_0', hetero_linr_config_file
     elif algorithm_name == 'hetero_lr':
         return hetero_lr_dsl_file, 'hetero_lr_0', hetero_lr_config_file
+    elif algorithm_name == 'example':
+        return example_dsl_file, 'secure_add_example_0', example_config_file
     else:
         raise Exception('Error: Wrong Algorithm!')
 

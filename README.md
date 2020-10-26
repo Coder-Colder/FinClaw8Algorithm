@@ -68,6 +68,10 @@ docker load -i fate_1.4.4-images.tar.gz
                            本次训练任务的名字
    -alg {hetero_lr, hetero_linr, example}, --algorithm {hetero_lr, hetero_linr, example}
                            配置使用的机器学习算法，支持选项：hetero_lr, hetero_linr, example.其中example为最简单的加法同态加密测试
+   -gid GUSETID 
+                           训练任务中的guest方id（拥有标签的一方），只有一个
+   -hid HOUSTID
+                           训练任务中的host方id(没有标签的其余合作方），一个列表
    ```
 
 3. 特别说明：
@@ -80,7 +84,7 @@ docker load -i fate_1.4.4-images.tar.gz
       + `submit`：必须在`deploy`完成后才能执行，功能：在训练环境部署完成的前提下由监管方发起一次训练任务
         1. 该任务执行成功会返回模型id和version，用于后续绑定模型和开展预测服务，需要保存
         2. 该任务执行失败会返回错误码和错误内容
-        3. 当任务指明为`submit`时，必须明确给出参数`-alg`，`-proj`
+        3. 当任务指明为`submit`时，必须明确给出参数`-alg`, `-proj`, `-aid`, `-hid`
         4. `deploy`任务和`submit`任务有继承性关联，一般`deploy`任务后紧跟`submit`，若多次`deploy`后才调用`subit`则会以最后一次`deploy`部署的节点和提交数据集开展训练。请勿多次调用`submit`，否则将提交多次相同的训练任务，造成不必要的开销
       + `delete`：删除之前的部署，不需要给出其余配置信息，默认使用上一次deploy的配置
 
@@ -95,7 +99,7 @@ docker load -i fate_1.4.4-images.tar.gz
    + `submit`:
    
      ```
-     python3 script.py -f submit -alg SecureBoost -proj example
+     python3 script.py -f submit -alg SecureBoost -proj example -gid 9999 -hid 10000
      ```
    
    + `delete`：
