@@ -156,18 +156,29 @@ def submit(alg, proj, gid, hid):
             if line.find("partyiplist") != -1:
                 line = line.strip("\n").strip("partyiplist=").strip("(").strip(")")
                 iplist = line.split(" ")
-                guestip = iplist[0]
             elif line.find("users") != -1:
                 line = line.strip("\n").strip("users=").strip("(").strip(")")
                 ulist = line.split(" ")
                 usr = ulist[0]
             elif line.find("table_names") != -1:
                 line = line.strip("\n").strip("table_names=").strip("(").strip(")")
-                tlist = line
+                tlist = line.split()
             elif line.find("passwords") != -1:
                 line = line.strip("\n").strip("passwords=").strip("(").strip(")")
                 plist = line.split(" ")
-                pswd = plist[0]
+            elif line.find("partylist") != -1:
+                line = line.strip("\n").strip("partylist=").strip("(").strip(")")
+                idlist = line.split(" ")
+
+    for idx in range(len(idlist)):
+        if idlist[idx] == gid:
+            guestip = iplist[idx]
+            pswd = plist[idx]
+            table = tlist[idx]
+            tlist.pop(idx)
+            newlist = [table]
+            newlist.append(tlist)
+            tlist = " ".join(newlist)
 
     #print(guestip, usr, tlist, pswd)
 
