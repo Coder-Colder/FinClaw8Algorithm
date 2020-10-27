@@ -300,7 +300,7 @@ EOF
 	expect "#"
 	send "docker-compose down\r"
 	expect "#"
-	send "docker-compose -d\r"
+	send "docker-compose up -d\r"
 	expect "#"
 	send "rm -f ../serving-${target_party_id}.tar\r"
 	expect "#"
