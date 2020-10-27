@@ -6,6 +6,7 @@ import paramiko
 
 UPLOAD_JSON_PATH = os.path.join(os.curdir, 'upload_data.json')
 PARTIES_PATH = "./parties.conf"
+UPLOAD_CONF_PATH = "./upload.conf"
 DATA_PATH = os.path.join(os.curdir, 'train_data.csv')
 
 fate_flow_path = "../fate_flow/fate_flow_client.py"
@@ -22,20 +23,44 @@ def generateTableName(proj_name, cnt):
         list.append(proj_name + "_" + str(i))
     return list
 
+def create_upload_conf(party_path, party2ip, party2usr, party2pswd, project):
+    usernames=[]
+    passwords=[]
+    party_list=[]
+    ip_list=[]
+    plist=[]
+    for item in party_path:
+        id, path = item
+        usernames.append(party2usr[id])
+        passwords.append(party2pswd[id])
+        party_list.append(id)
+        ip_list.append(party2ip[id])
+        plist.append(path)
+    tlist=generateTableName(project, len(plist))
 
-def create_parties_json(proj_name, ip_list, party_list, passwords, datapaths, usernames=[]):
-    with open(PARTIES_PATH, 'w+') as f:
-        f.write('#!/bin/bash\n\n')
-        f.write("project={}\n".format(proj_name))
+    with open(UPLOAD_CONF_PATH, "w+") as f:
+        f.write("#!/bin/bash\n\n")
         f.write("user=root\n")
         f.write("dir=/data/projects/fate\n")
-        f.write("users=({})\n".format(" ".join(usernames)))
-        f.write("datapaths=({})\n".format(" ".join(datapaths)))
+        f.write("users=({})".format(usernames))
         f.write("passwords=({})\n".format(" ".join(passwords)))
         f.write("partylist=({})\n".format(" ".join(party_list)))
         f.write("partyiplist=({})\n".format(" ".join(ip_list)))
         f.write("servingiplist=({})\n".format(" ".join(ip_list)))
-        f.write("table_names=({})\n".format(" ".join(generateTableName(proj_name, len(ip_list)))))
+        f.write("table_names=({})\n".format(" ".join(tlist)))
+        f.write("datapaths=({})\n".format(" ".join(plist)))
+        f.write("project={}\n".format(project))
+
+def create_parties_json(ip_list, party_list, passwords, usernames=[]):
+    with open(PARTIES_PATH, 'w+') as f:
+        f.write('#!/bin/bash\n\n')
+        f.write("user=root\n")
+        f.write("dir=/data/projects/fate\n")
+        f.write("users=({})\n".format(" ".join(usernames)))
+        f.write("passwords=({})\n".format(" ".join(passwords)))
+        f.write("partylist=({})\n".format(" ".join(party_list)))
+        f.write("partyiplist=({})\n".format(" ".join(ip_list)))
+        f.write("servingiplist=({})\n".format(" ".join(ip_list)))
         f.write("#exchangeip=\n")
         f.write('''# modify if you are going to use an external db
 mysql_ip=mysql
@@ -58,7 +83,7 @@ def create_upload_json(data_path, task_name, table_name: str):
     upload_dict["work_mode"] = 1
     upload_dict["namespace"] = task_name
     upload_dict["table_name"] = table_name
-    with open(UPLOAD_JSON_PATH, 'w') as f:
+    with open(UPLOAD_JSON_PATH, 'w+') as f:
         json.dump(upload_dict, f, sort_keys=True, indent=4, separators=(', ', ':'))
 
 
@@ -67,7 +92,7 @@ import argparse
 import os
 
 parser = argparse.ArgumentParser(add_help=True, description="Fedarated Learning command parser")
-parser.add_argument("-f", "--function", type=str, choices=["deploy", "upload", "submit", "delete", "load_bind", "predict"], required=True,
+parser.add_argument("-f", "--function", type=str, choices=["deploy", "upload", "submit", "delete", "load_bind", "predict", "r_upload"], required=True,
                     help="choose the function to execute.")
 
 parser.add_argument("-u", "--users", type=str, nargs='*',
@@ -86,29 +111,26 @@ parser.add_argument("-ip", "--ip", type=str, nargs='+',
                     help="ipv4 address of each host respectively.The first ip will be regarded \
                     as the ip of regulator host. Need to specify when using '-f deploy'.")
 
-parser.add_argument("-p", "--path", type=str, nargs='+', metavar='dataPath',
-                    help="path of dataset(.csv file) on each host respectively. The first path will be regarded \
-                    as path of dataset on regulator host. Need to specify when using '-f deploy'.")
+parser.add_argument("-gp", "--guestpair", type=str,
+                    help="Needed when using '-f upload")
+
+parser.add_argument("-hp", "--hostpair", type=str, nargs="+",
+                    help="Needed when using '-f upload'")
 
 parser.add_argument("-proj", "--project", type=str,
-                    help="name of the training project. Need to specify when using '-f deploy' or '-f upload'.")
+                    help="name of the training project. Need to specify when using '-f deploy' or '-f r_upload'\
+                     or '-f upload'.")
 
 parser.add_argument("-dp", "--datapath", type=str,
-                    help="path of dataset to upload on local host. Need to specify when using '-f upload'")
+                    help="path of dataset to upload on local host. Need to specify when using '-f r_upload'")
 
 parser.add_argument("-tb", "--tablename", type=str,
-                    help="name of data table to configure upload.json. Need to specify when using '-f upload'")
+                    help="name of data table to configure upload.json. Need to specify when using '-f r_upload'")
 
 parser.add_argument("-alg", "--algorithm", type=str, choices=["hetero_lr", "hetero_linr", "example"],
                     help="configure the Machine Learning Algorithm.")
 
-parser.add_argument("-gid", "--guest_id", type=int,
-                    help="the id of the guest submitted the job.")
-
-parser.add_argument("-hid", "--host_id", type=int,
-                    help="the id of the host, needed when submitting the job.")
-
-parser.add_argument("-m", "--work_mode", type=int,
+parser.add_argument("-m", "--work_mode", type=int, choices=[0, 1],
                     help="the mode of the work, 0 means stand-alone deployment and 1 means multiple deployment,\
                      needed when using'-f submit'.")
 
@@ -118,7 +140,7 @@ parser.add_argument("-mid", "--model_id", type=int,
 parser.add_argument("-mver", "--model_version", type=int,
                     help="the version of the model, needed when submitting the job.Needed when using '-f load_bind'")
 
-parser.add_argument("-mname", "--model-name", type=str,
+parser.add_argument("-mname", "--model_name", type=str,
                     help="a unique name assigned to the model.Needed when using '-f predict' or '-f load_bind'")
 
 parser.add_argument("-params", "--parameters", type=float, nargs="+",
@@ -141,19 +163,20 @@ def run_cmd(cmd):
     return stdout.decode("utf-8")
 
 
-def deploy():
-    if args.users == None:
+def deploy(iplist, idlist, passwordlist, users):
+    if users == None:
         users = ["root"]
-    else:
-        users = args.users
-    create_parties_json(args.project, args.ip, args.id, args.password, args.path, users)
+    if len(users) != len(idlist):
+        for i in range(len(idlist) - len(users)):
+            users.append("root")
+    create_parties_json(iplist, idlist, passwordlist, users)
     run_cmd(["bash", "./generate_config.sh"])
     run_cmd(["bash", "./docker_deploy.sh", "all"])
     print("success")
 
 
-def upload():
-    create_upload_json(args.datapath, args.project, args.tablename)
+def _upload(datapath, project, tablename):
+    create_upload_json(datapath, project, tablename)
     ret = eval(run_cmd(["python", fate_flow_path, "-f", "upload", "-c", UPLOAD_JSON_PATH]))
     total_cnt = 20
     i = 0
@@ -162,123 +185,68 @@ def upload():
         i += 1
 
 
+def getPartyInfo():
+    with open("./parties.conf", "r+", encoding="utf-8") as f:
+        for line in f.readlines():
+            if line.find("partyiplist") != -1:
+                iplist = line.strip("\n").strip("partyiplist=").strip("(").strip(")").split(" ")
+            elif line.find("users") != -1:
+                ulist = line.strip("\n").strip("users=").strip("(").strip(")").split(" ")
+            elif line.find("passwords") != -1:
+                plist = line.strip("\n").strip("passwords=").strip("(").strip(")").split(" ")
+            elif line.find("partylist") != -1:
+                idlist = line.strip("\n").strip("partylist=").strip("(").strip(")").split(" ")
+    party2pswd={}
+    party2usr={}
+    party2ip={}
+    for idx in range(len(idlist)):
+        party2ip[idlist[idx]] = iplist[idx]
+        party2usr[idlist[idx]] = ulist[idx]
+        party2pswd[idlist[idx]] = plist[idx]
+    return party2ip, party2usr, party2pswd
+
+
+def upload(guest_pair, host_pair, project):
+    if guest_pair is None or len(guest_pair) != 2 or (host_pair is not None and len(host_pair) % 2 != 0):
+        print("error!")
+    if host_pair is None:
+        host_pair = []
+    party_path = [(guest_pair[0], guest_pair[1])]
+    for idx in range(0, len(host_pair), 2):
+        party_path.append((host_pair[idx], host_pair[idx+1]))
+    party2ip, party2usr, party2pswd = getPartyInfo()
+    create_upload_conf(party_path, party2ip, party2usr, party2pswd, project)
+    os.system("bash ./upload.sh")
+
+
 def delete():
     run_cmd(["bash", "./docker_deploy.sh", "--delete", "all"])
 
 
-def submit(alg, proj, gid, hid, work_mode):
-    os.system("bash ./docker_deploy.sh --submit -m {} -alg {} -proj {} -gid {} -hid {}".format(work_mode, alg, proj, gid, hid))
+def submit(alg, proj, work_mode):
+    os.system("bash ./upload.sh --submit -m {} -alg {} -proj {}".format(work_mode, alg, proj))
 
 
 def bind(model_name, model_id, model_version):
     pass
 
+
 def predict(model_name, params):
     pass
-
-# def submit(alg, proj, gid, hid):
-#     with open("./parties.conf", "r+", encoding="utf-8") as f:
-#         for line in f.readlines():
-#             if line.find("partyiplist") != -1:
-#                 line = line.strip("\n").strip("partyiplist=").strip("(").strip(")")
-#                 iplist = line.split(" ")
-#             elif line.find("users") != -1:
-#                 line = line.strip("\n").strip("users=").strip("(").strip(")")
-#                 ulist = line.split(" ")
-#                 usr = ulist[0]
-#             elif line.find("table_names") != -1:
-#                 line = line.strip("\n").strip("table_names=").strip("(").strip(")")
-#                 tlist = line.split()
-#             elif line.find("passwords") != -1:
-#                 line = line.strip("\n").strip("passwords=").strip("(").strip(")")
-#                 plist = line.split(" ")
-#             elif line.find("partylist") != -1:
-#                 line = line.strip("\n").strip("partylist=").strip("(").strip(")")
-#                 idlist = line.split(" ")
-#
-#     for idx in range(len(idlist)):
-#         if idlist[idx] == gid:
-#             guestip = iplist[idx]
-#             pswd = plist[idx]
-#             table = tlist[idx]
-#             tlist.pop(idx)
-#             newlist = [table]
-#             newlist.extend(tlist)
-#             tlist = " ".join(newlist)
-#
-#     #print(guestip, usr, tlist, pswd)
-#
-#     os.system("tar -zcvf run_task_script.tar.gz ./run_task_script")
-#     trans = paramiko.Transport((guestip, 22))
-#     trans.connect(username=usr, password=pswd)
-#     sftp = paramiko.SFTP.from_transport(trans)
-#     if usr == "root":
-#         remote_path = "/root/run_task_script.tar.gz"
-#     else:
-#         remote_path = "/home/{usr}/run_task_script.tar.gz".format(usr=usr)
-#     sftp.put("./run_task_script.tar.gz", remote_path)
-#     trans.close()
-#
-#     cmds = [
-#         "docker cp {path} confs-{gid}_python_1:/data/projects/fate/python/{project}/run_task_script.tar.gz".format(
-#             gid=gid, project=proj, path=remote_path),
-#         "rm -rf {path}".format(path=remote_path),
-#         "cd {project}/".format(project=proj),
-#         '''docker exec -ti confs-{gid}_python_1 bash<<EOF
-#  cd {project}/
-#  tar zxvf run_task_script.tar.gz
-#  python ./run_task_script/run_task.py -m 1 -alg {alg} -proj {project} -t {table_name} -gid {gid} -hid {hid} -aid {gid}
-#  exit
-#  EOF'''.format(gid=gid, project=proj, alg=alg, table_name=tlist, hid=" ".join(hid)),
-#         "exit"
-#         ]
-#
-#     ssh = paramiko.SSHClient()
-#     policy = paramiko.AutoAddPolicy()
-#     ssh.set_missing_host_key_policy(policy)
-#     ssh.connect(guestip, 22, usr, pswd)
-#     stdin, stdout, stderr = ssh.exec_command(" && ".join(cmds))
-#     print(stdout.read().decode("utf-8"))
-#     print(stderr.read().decode("utf-8"))
-#     # stdin, stdout, stderr = ssh.exec_command(
-#     #     "docker cp ~/run_task_script.tar.gz confs-{gid}_python_1:/data/projects/fate/python/{project}/run_task_script".format(
-#     #         gid=gid, project=proj))
-#     # print(stdout.read().decode("utf-8"))
-#     # ssh.connect(guestip, 22, usr, pswd)
-#     # stdin, stdout, stderr = ssh.exec_command("rm -rf ~/run_task_script.tar.gz")
-#     # print(stdout.read().decode("utf-8"))
-#     # stdin, stdout, stderr = ssh.exec_command("docker exec -it confs-{gid}_python_1 bash".format(gid=gid))
-#     # print(stdout.read().decode("utf-8"))
-#     # stdin, stdout, stderr = ssh.exec_command("cd {project}/".format(project=proj))
-#     # print(stdout.read().decode("utf-8"))
-#     # stdin, stdout, stderr = ssh.exec_command("tar zxvf run_task_script.tar.gz")
-#     # print(stdout.read().decode("utf-8"))
-#     # stdin, stdout, stderr = ssh.exec_command("python ./run_task_script/run_task.py -m 1 -alg {alg} -proj {project} -t {table_name} -gid {gid} -hid {hid} -aid {gid}".format(alg=alg, project=proj, table_name=tlist, gid=gid, hid=" ".join(hid)))
-#     # print(stdout.read().decode("utf-8"))
-#     # stdout = json.load(stdout)
-#     # if stdout["retcode"] != 0:
-#     #     print("failed!")
-#     #     return None
-#     # model_id = stdout['data']['model_info']["model_id"]
-#     # model_version = stdout['data']['model_info']["model_version"]
-#     # job_id = stdout["job_id"]
-#     # stdin, stdout, stderr = ssh.exec_command("exit")
-#     # print(stdout.read().decode("utf-8"))
-#     # stdin, stdout, stderr = ssh.exec_command("exit")
-#     # print(stdout.read().decode("utf-8"))
-#     # print(model_id, model_version, job_id)
 
 
 
 if args.function == "deploy":
-    deploy()
+    deploy(args.ip, args.id, args.password, args.users)
 elif args.function == "submit":
-    submit(args.algorithm, args.project, args.guestid, args.hostid)
-elif args.function == "upload":
-    upload()
+    submit(args.algorithm, args.project, args.work_mode)
+elif args.function == "r_upload":
+    _upload(args.datapath, args.project, args.tablename)
 elif args.function == "delete":
     delete()
 elif args.function == "bind":
-    bind()
-
-
+    bind(args.model_name, args.model_id, args.model_version)
+elif args.function == "upload":
+    upload(args.guestpair, args.hostpair, args.project)
+elif args.function == "predict":
+    predict(args.model_name, args.parameters)
