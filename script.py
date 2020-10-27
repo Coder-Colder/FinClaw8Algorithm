@@ -42,7 +42,7 @@ def create_upload_conf(party_path, party2ip, party2usr, party2pswd, project):
         f.write("#!/bin/bash\n\n")
         f.write("user=root\n")
         f.write("dir=/data/projects/fate\n")
-        f.write("users=({})".format(usernames))
+        f.write("users=({})\n".format(usernames))
         f.write("passwords=({})\n".format(" ".join(passwords)))
         f.write("partylist=({})\n".format(" ".join(party_list)))
         f.write("partyiplist=({})\n".format(" ".join(ip_list)))
@@ -157,7 +157,7 @@ parser.add_argument("-ip", "--ip", type=str, nargs='+',
                     help="ipv4 address of each host respectively.The first ip will be regarded \
                     as the ip of regulator host. Need to specify when using '-f deploy'.")
 
-parser.add_argument("-gp", "--guestpair", type=str,
+parser.add_argument("-gp", "--guestpair", type=str, nargs=2,
                     help="Needed when using '-f upload")
 
 parser.add_argument("-hp", "--hostpair", type=str, nargs="+",
@@ -262,7 +262,7 @@ def upload(guest_pair, host_pair, project):
         party_path.append((host_pair[idx], host_pair[idx+1]))
     party2ip, party2usr, party2pswd = getPartyInfo()
     create_upload_conf(party_path, party2ip, party2usr, party2pswd, project)
-    os.system("bash ./upload.sh")
+    os.system("bash ./upload.sh all")
     print("success")
 
 
