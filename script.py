@@ -309,7 +309,7 @@ elif args.function == "r_upload":
     _upload(args.datapath, args.project, args.tablename)
 elif args.function == "delete":
     delete()
-elif args.function == "bind":
+elif args.function == "load_bind":
     bind(args.model_name, args.model_id, args.model_version)
 elif args.function == "upload":
     upload(args.guestpair, args.hostpair, args.project)
