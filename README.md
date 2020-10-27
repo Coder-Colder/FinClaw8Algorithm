@@ -46,7 +46,7 @@ docker load -i fate_1.4.4-images.tar.gz
 
    ```
    usage: python3 script.py [-h] 
-                    -f {deploy,submit,delete,upload,load_bind, predict}
+                    -f {deploy,submit,delete,upload,query,load_bind, predict}
                     [-u [USERS [USERS ...]]] 
                     [-pw PASSWORD [PASSWORD ...]]
                     [-id ID [ID ...]] [-ip IP [IP ...]]
@@ -59,11 +59,12 @@ docker load -i fate_1.4.4-images.tar.gz
                     [-mver model_version]
                     [-mname model_name]
                     [-params param [param ...]]
+                    [-jid jobid]
    
    optional arguments:
    -h, --help              show this help message and exit
-   -f {deploy, submit,delete,upload,load_bind,predict}, --function {deploy,submit,delete,upload,load_bind,predict}
-                           指明脚本需要完成的任务，支持选项为deploy,submit,delete,upload,load_bind,predict
+   -f {deploy,submit,delete,upload,query,load_bind, predict},
+                           指明脚本需要完成的任务，支持选项为deploy,submit,delete,upload,query,load_bind, predict
    -u [USERS [USERS ...]], --users [USERS [USERS ...]]
                            该命令暂时无效，默认使用root用户，deploy时使用
    -pw PASSWORD [PASSWORD ...], --password PASSWORD [PASSWORD ...]
@@ -90,6 +91,8 @@ docker load -i fate_1.4.4-images.tar.gz
                            模型命名
    -params param [param ...]
                            预测使用的特征数据
+   -jid jobid
+                           查询训练任务状态使用的jobid
    ```
 
 3. 特别说明：
@@ -109,10 +112,13 @@ docker load -i fate_1.4.4-images.tar.gz
             含义为id为9999的一方同时扮演角色guest和host，分别要上传数据集/root/data.csv和/root/data1.csv，而id为10000的一方扮演角色host, 上传数据集为/root/data2.csv
         5. `upload`任务和`deploy`任务有继承性关联，一般`deloy`任务后紧跟`upload`
       + `submit`：必须在`upload`完成后才能执行，功能：在训练环境部署完成的前提下由监管方发起一次训练任务
-        1. 该任务执行成功会返回模型id和version，用于后续绑定模型和开展预测服务，需要保存
+        1. 返回值:moder_id, model_version, job_id，用于后续查询训练状态，绑定模型和开展预测服务，需要保存
         2. 该任务执行失败会返回错误码和错误内容
         3. 当任务指明为`submit`时，必须明确给出参数`-alg`, `-proj`, `-m`
         4. `deploy`任务和`upload`任务有继承性关联，一般`upload`任务后紧跟`submit`，若多次`deploy`后才调用`subit`则会以最后一次`deploy`部署的节点和提交数据集开展训练。请勿多次调用`submit`，否则将提交多次相同的训练任务，造成不必要的开销
+      + `query`:用于查询当前训练任务状态
+        1. 返回值: 模型各个阶段的状态，多行字符串，每行为`success`, `failed`和`running`。`running`说明模型正在训练尚未结束，而若所有返回值全为`success`则模型训练成功完成否则若出现一次`failed`则模型训练以失败告终
+        2. 当任务指明为`query`时，必须明确给出参数`-jid`
       + `delete`：删除之前的部署，不需要给出其余配置信息，默认使用上一次deploy的配置
       + `load_bind`:必须在`submit`完成后才能执行，功能：加载与绑定，具有数据标签的一方绑定模型提供预测服务
         1. 当任务指明为`load_bind`时，必须明确给出参数`-mid`, `-mver`, `-mname`
@@ -138,6 +144,12 @@ docker load -i fate_1.4.4-images.tar.gz
      python3 script.py -f submit -alg SecureBoost -proj example -m 1
      ```
    
+   + `query`:
+   
+     ```
+     python3 script.py -f query -jid jobid
+     ```
+     
    + `delete`：
    
      ```
