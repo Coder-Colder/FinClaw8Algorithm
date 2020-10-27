@@ -15,10 +15,6 @@ hetero_lr_dsl_file = home_dir + "/config/test_hetero_lr_train_job_dsl.json"
 hetero_linr_config_file = home_dir + "/config/test_hetero_linr_train_job_conf.json"
 hetero_linr_dsl_file = home_dir + "/config/test_hetero_linr_train_job_dsl.json"
 
-# example task
-example_config_file = home_dir + "/config/test_example_job_conf.json"
-example_dsl_file = home_dir + "/config/test_example_job_dsl.json"
-
 # hetero-sbt task
 hetero_sbt_config_file = home_dir + "/config/test_secureboost_train_binary_conf.json"
 hetero_sbt_dsl_file = home_dir + "/config/test_secureboost_train_dsl.json"
@@ -184,6 +180,10 @@ class TrainTask(TaskManager):
         self.model_id = stdout['data']['model_info']['model_id']
         self.model_version = stdout['data']['model_info']['model_version']
         print(stdout)
+        
+        start_task_cmd = ['python', "/data/projects/fate/saveInfo.py", self.model_id, self.model_version]
+        stdout = self.start_task(start_task_cmd)
+        
         self._check_status(jobid)
 
         auc = self._get_auc(jobid)
@@ -323,8 +323,6 @@ def get_configuration_file(algorithm_name):
         return hetero_linr_dsl_file, 'hetero_linr_0', hetero_linr_config_file
     elif algorithm_name == 'hetero_lr':
         return hetero_lr_dsl_file, 'hetero_lr_0', hetero_lr_config_file
-    elif algorithm_name == 'example':
-        return example_dsl_file, 'secure_add_example_0', example_config_file
     else:
         raise Exception('Error: Wrong Algorithm!')
 
