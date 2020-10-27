@@ -6,10 +6,14 @@
 2. Docker: 18+
 3. Docker-Compose: 1.24+
 4. 部署了kubefate-1.4.4
+5. 安装expect
 
 部署方式如下：
 
 ```
+#安装expect
+sudo apt-get install expect
+
 #新建项目目录
 mkdir -p kubefate
 
