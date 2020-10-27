@@ -2,7 +2,6 @@
 import json
 import os
 import logging
-import paramiko
 
 UPLOAD_JSON_PATH = os.path.join(os.curdir, 'upload_data.json')
 PARTIES_PATH = "./parties.conf"
