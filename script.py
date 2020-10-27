@@ -87,6 +87,52 @@ def create_upload_json(data_path, task_name, table_name: str):
         json.dump(upload_dict, f, sort_keys=True, indent=4, separators=(', ', ':'))
 
 
+def create_predict_data_json(model_name, param_dict):
+    '''
+    创建guest用于预测的json文件,如下：
+    {"head":
+    {"serviceId":"test"},
+    "body":{"featureData":
+    {"x0": 0.254879,
+    "x1": -1.046633,
+    "x2": 0.209656,
+    "x3": 0.074214,
+    "x4": -0.441366,
+    "x5": -0.377645,
+    "x6": -0.485934,
+    "x7": 0.347072,
+    "x8": -0.287570,
+    "x9": -0.733474}
+    }
+    }
+
+    :param model_name:  将要预测的模型名称（在bind时绑定）
+    :param param_dict:  用于预测的feature data,为feature name: feature value 的键值对
+    :return: json格式的字符串
+    '''
+    predict_data_json = {}
+    predict_data_json["head"] = {}
+    predict_data_json["body"] = {}
+    predict_data_json["head"]["serviceId"] = model_name
+    predict_data_json["body"]["featureData"] = param_dict
+    predict_data_str = json.dumps(predict_data_json)
+    print(predict_data_str)
+    return predict_data_str
+
+
+def get_guest_ip(data_path):
+    guest_ip = " "
+    line = " "
+    with open(UPLOAD_CONF_PATH, 'r', encoding='utf-8') as f:
+        line = f.readline()
+        while line and guest_ip == " ":
+            if "partyiplist" in line:
+                token = line.split(' ')
+                guest_ip = token[0].strip('partyiplist=(').rstrip().rstrip(')')
+            line = f.readline()
+    f.close()
+    return guest_ip
+
 # Argument Parser
 import argparse
 import os
@@ -217,22 +263,41 @@ def upload(guest_pair, host_pair, project):
     party2ip, party2usr, party2pswd = getPartyInfo()
     create_upload_conf(party_path, party2ip, party2usr, party2pswd, project)
     os.system("bash ./upload.sh")
+    print("success")
 
 
 def delete():
     run_cmd(["bash", "./docker_deploy.sh", "--delete", "all"])
+    print("success")
 
 
 def submit(alg, proj, work_mode):
+    with open(UPLOAD_CONF_PATH, "a+") as f:
+        f.write("workmode={}\n".format(work_mode))
     os.system("bash ./upload.sh --submit -m {} -alg {} -proj {}".format(work_mode, alg, proj))
+    info={}
+    info["retcode"] = 0
+    with open("./info.txt", "r") as f:
+        info["model_id"] = f.readline().strip("\n")
+        info["model_version"] = f.readline().strip("\n")
+    print(info)
 
 
 def bind(model_name, model_id, model_version):
-    pass
+    os.system("bash ./upload.sh --bind -mid {} -mver {} -mname {}".format(model_id, model_version, model_name))
 
 
 def predict(model_name, params):
-    pass
+    predict_param = {}
+    for key, tem in enumerate(params):
+        predict_param["x" + str(key)] = tem
+
+    predict_str = create_predict_data_json(model_name, predict_param)
+    predict_ip = get_guest_ip(PARTIES_PATH)
+    cmd = ("curl -X POST -H 'Content-Type: application/json' -d '" + predict_str +
+           " 'http://" + predict_ip + ":8059/federation/v1/inference'")
+
+    os.system(cmd)
 
 
 
