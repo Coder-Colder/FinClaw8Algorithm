@@ -187,7 +187,7 @@ class TrainTask(TaskManager):
             self.model_version = stdout['data']['model_info']['model_version']
             print(stdout)
 
-            os.system(" ".join(['python', "/data/projects/fate/saveInfo.py", self.model_id, self.model_version]))
+            os.system(" ".join(['python', "/data/projects/fate/saveInfo.py", self.model_id, self.model_version], jobid))
 
             # self._check_status(jobid)
             #

@@ -283,6 +283,7 @@ def submit(alg, proj, work_mode):
     with open("./info.txt", "r") as f:
         info["model_id"] = f.readline().strip("\n")
         info["model_version"] = f.readline().strip("\n")
+        info["jobid"] = f.readline().strip("\n")
     print(info)
 
 
