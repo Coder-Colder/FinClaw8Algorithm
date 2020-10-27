@@ -18,7 +18,7 @@ WORKINGDIR=$(pwd)
 password=0
 datapath=0
 table_name=0
-timecnt = 300
+timecnt=300
 
 # fetch fate-python image
 source ${WORKINGDIR}/.env
