@@ -90,8 +90,6 @@ EOF
 	}
 	expect "#"
 	send "ls\r"
-	expect "#"
-	send "docker ps\r"
     expect "#"
     send "docker exec -it confs-${target_party_id}_python_1 bash\r"
     expect "#"
@@ -110,8 +108,15 @@ EOF
     send "cd ${project}\r"
     expect "#"
     send "python script.py -f r_upload -tb $table_name -dp /data/projects/fate/python/${project}/data.csv -proj $project\r"
-    expect "#"
-    send "exit\r"
+    expect {
+		"success" {
+			expect "#"
+			send "exit\r"
+		}
+		"#" {
+			send "exit\r"
+		}
+	}
 	expect "#"
     send "exit\r"
     expect eof
@@ -191,8 +196,15 @@ EOF
 	send "cd ${project}/\r"
 	expect "#"
 	send "python ./run_task_script/run_task.py -m ${work_mode} -alg ${alg} -proj ${project} -t ${tables} -gid ${gid} -hid ${hid} -aid ${gid}\r"
-	expect "#"
-    send "exit\r"
+    expect {
+		"success" {
+			expect "#"
+			send "exit\r"
+		}
+		"#" {
+			send "exit\r"
+		}
+	}
 	expect "#"
     send "exit\r"
     expect eof
@@ -263,8 +275,15 @@ Bind() {
 	send "cd ${project}/\r"
 	expect "#"
 	send "python ./run_task_script/run_task.py -m ${work_mode} -s 1 -alg ${alg} -proj ${proj} -t ${table_name} -mid ${model_id} -mv ${model_version} -gid ${gid} -hid ${hid} -aid ${gid}\r"
-	expect "#"
-    send "exit\r"
+    expect {
+		"success" {
+			expect "#"
+			send "exit\r"
+		}
+		"#" {
+			send "exit\r"
+		}
+	}
     expect "#"
     send "exit\r"
     expect eof
