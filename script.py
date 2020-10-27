@@ -41,7 +41,7 @@ def create_upload_conf(party_path, party2ip, party2usr, party2pswd, project):
         f.write("#!/bin/bash\n\n")
         f.write("user=root\n")
         f.write("dir=/data/projects/fate\n")
-        f.write("users=({})\n".format(usernames))
+        f.write("users=({})\n".format(" ".join(usernames)))
         f.write("passwords=({})\n".format(" ".join(passwords)))
         f.write("partylist=({})\n".format(" ".join(party_list)))
         f.write("partyiplist=({})\n".format(" ".join(ip_list)))
@@ -228,6 +228,7 @@ def _upload(datapath, project, tablename):
     while ret["retcode"] != 0 and i < total_cnt:
         ret = eval(run_cmd(["python", fate_flow_path, "-f", "upload", "-c", UPLOAD_JSON_PATH]))
         i += 1
+    print(ret)
 
 
 def getPartyInfo():
