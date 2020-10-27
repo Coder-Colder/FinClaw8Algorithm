@@ -133,11 +133,21 @@ Submit() {
 	work_mode=$3
 	alg=$5
 	project=$7
-	tables=${table_names}
 	gid=${partylist[0]}
-	hid=${partylist[@]:1:${#partylist[*]}-1}
+	hidlist=${partylist[@]:1:${#partylist[*]}-1}
 	target_party_ip=${partyiplist[0]}
 	password=${passwords[0]}
+
+	tables=${table_names[0]}
+	for ((i = 1; i < ${#table_names[*]}; i++)); do
+		tables="$tables ${table_names[i]}"
+	done
+
+	hid=${hidlist[0]}
+	for ((i = 1; i < ${#hidlist[*]}; i++)); do
+		hid="$hid ${hidlist[i]}"
+	done
+
 /usr/bin/expect<<EOF
     set timeout $timecnt
     spawn scp -r ${WORKINGDIR}/run_task_script $user@$target_party_ip:~/
@@ -253,10 +263,15 @@ Bind() {
 	model_version=${5}
 	model_name=${7}
 	gid=${partylist[0]}
-	hid=${partylist[@]:1:${#partylist[*]}-1}
+	hidlist=${partylist[@]:1:${#partylist[*]}-1}
 	table_name=xxx
 	target_party_ip=${partyiplist[0]}
 	password=${passwords[0]}
+
+	hid=${hidlist[0]}
+	for ((i = 1; i < ${#hidlist[*]}; i++)); do
+		hid="$hid ${hidlist[i]}"
+	done
 /usr/bin/expect<<EOF
     spawn ssh $user@$target_party_ip
 	expect {
