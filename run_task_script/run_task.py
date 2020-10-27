@@ -186,10 +186,9 @@ class TrainTask(TaskManager):
             self.model_id = stdout['data']['model_info']['model_id']
             self.model_version = stdout['data']['model_info']['model_version']
             print(stdout)
-            
-            start_task_cmd = ['python', "/data/projects/fate/saveInfo.py", self.model_id, self.model_version]
-            stdout = self.start_task(start_task_cmd)
-            
+
+            os.system(" ".join(['python', "/data/projects/fate/saveInfo.py", self.model_id, self.model_version]))
+
             # self._check_status(jobid)
             #
             # auc = self._get_auc(jobid)
