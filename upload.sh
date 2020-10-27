@@ -130,7 +130,7 @@ Submit() {
 	project=$7
 	tables=${table_names}
 	gid=${partylist[0]}
-	hid=${partylist[@]:1:#partylist[*]-1}
+	hid=${partylist[@]:1:${#partylist[*]}-1}
 	target_party_ip=${partyiplist[0]}
 	password=${passwords[0]}
 /usr/bin/expect<<EOF
@@ -241,7 +241,7 @@ Bind() {
 	model_version=${5}
 	model_name=${7}
 	gid=${partylist[0]}
-	hid=${partylist[@]:1:#partylist[*]-1}
+	hid=${partylist[@]:1:${#partylist[*]}-1}
 	table_name=xxx
 	target_party_ip=${partyiplist[0]}
 	password=${passwords[0]}
