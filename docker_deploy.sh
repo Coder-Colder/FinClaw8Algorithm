@@ -196,15 +196,15 @@ EOF
 	expect "#"
 	send "mkdir -p $dir\r"
 	expect "#"
-	send "rm -f $dir/confs-$target_party_id.tar\r"
+	send "rm -f $dir/confs-${target_party_id}.tar\r"
 	expect "#"
-	send "mv ~/confs-$target_party_id.tar $dir\r"
+	send "mv ~/confs-${target_party_id}.tar $dir\r"
 	expect "#"
 	send "cd $dir\r"
 	expect "#"
-	send "tar -xzf confs-$target_party_id.tar\r"
+	send "tar -xzf confs-${target_party_id}.tar\r"
 	expect "#"
-	send "cd confs-$target_party_id\r"
+	send "cd confs-${target_party_id}\r"
 	expect "#"
 	send "docker-compose down\r"
 	expect "#"
@@ -293,15 +293,15 @@ EOF
 	expect "#"
 	send "cd $dir\r"
 	expect "#"
-	send "tar -xzf serving-$target_party_id.tar\r"
+	send "tar -xzf serving-${target_party_id}.tar\r"
 	expect "#"
-	send "cd serving-$target_party_id\r"
+	send "cd serving-${target_party_id}\r"
 	expect "#"
 	send "docker-compose down\r"
 	expect "#"
-	send "docker-compose up -d\r"
+	send "docker-compose -d\r"
 	expect "#"
-	send "rm -f ../serving-$target_party_id.tar\r"
+	send "rm -f ../serving-${target_party_id}.tar\r"
 	expect "#"
     send "exit\r"
     expect eof
@@ -464,170 +464,6 @@ ShowUsage() {
 	echo "Deploy all parties or specified partie(s): bash docker_deploy.sh partyid1[partyid2...] | all"
 }
 
-Submit() {
-	work_mode=$3
-	alg=$5
-	project=$7
-	table_name=${table_names}
-	gid=$9
-	hid=${11}
-	target_party_ip=${partyiplist[0]}
-	password=${passwords[0]}
-/usr/bin/expect<<EOF
-    set timeout 300
-    spawn scp -r ${WORKINGDIR}/run_task_script $user@$target_party_ip:~/
-	expect {
-		"(yes/no)?" {
-			send "yes\n"
-			expect "password:"
-			send "$password\n"
-		}
-		"password:" {
-			send "$password\n"
-		}
-	}
-	expect eof
-EOF
-/usr/bin/expect<<EOF
-    set timeout 300
-	spawn scp ${WORKINGDIR}/saveInfo.py $user@$target_party_ip:~/
-	expect {
-		"(yes/no)?" {
-			send "yes\n"
-			expect "password:"
-			send "$password\n"
-		}
-		"password:" {
-			send "$password\n"
-		}
-	}
-	expect eof
-EOF
-
-/usr/bin/expect<<EOF
-    set timeout 300
-    spawn ssh $user@$target_party_ip
-	expect {
-		"(yes/no)?" {
-			send "yes\n"
-			expect "password:"
-			send "$password\n"
-		}
-		"password:" {
-			send "$password\n"
-		}
-	}
-	expect "#"
-	send "docker cp ~/run_task_script confs-${gid}_python_1:/data/projects/fate/python/${project}/run_task_script\r"
-	expect "#"
-	send "docker cp ~/saveInfo.py confs-${gid}_python_1:/data/projects/fate/\r"
-	expect "#"
-	send "rm -rf ~/run_task_script\r"
-	expect "#"
-	send "rm -rf ~/saveInfo.py\r"
-	expect "#"
-	send "docker exec -it confs-${gid}_python_1 bash\r"
-	expect "#"
-	send "cd ${project}/\r"
-	expect "#"
-	send "python ./run_task_script/run_task.py -m ${work_mode} -alg ${alg} -proj ${project} -t ${table_name} -gid ${gid} -hid ${hid} -aid ${gid}\r"
-	expect "#"
-    send "exit\r"
-	expect "#"
-    send "exit\r"
-    expect eof
-EOF
-/usr/bin/expect<<EOF
-    set timeout 300
-    spawn ssh $user@$target_party_ip
-	expect {
-		"(yes/no)?" {
-			send "yes\n"
-			expect "password:"
-			send "$password\n"
-		}
-		"password:" {
-			send "$password\n"
-		}
-	}
-	expect "#"
-	send "docker cp confs-${gid}_python_1:/data/projects/fate/info.txt ~/info.txt\r"
-	expect "#"
-    send "exit\r"
-    expect eof
-EOF
-/usr/bin/expect<<EOF
-    set timeout 300
-	spawn scp $user@$target_party_ip:~/info.txt ${WORKINGDIR}/
-	expect {
-		"(yes/no)?" {
-			send "yes\n"
-			expect "password:"
-			send "$password\n"
-		}
-		"password:" {
-			send "$password\n"
-		}
-	}
-	expect eof
-EOF
-}
-
-Bind() {
-	work_mode=$3
-	model_id=$5
-	model_version=$7
-	gid=$9
-	hid=$11
-	target_party_ip=${partyiplist[0]}
-	password=${passwords[0]}
-/usr/bin/expect<<EOF
-    set timeout 300
-    spawn scp -r ${WORKINGDIR}/run_task_script $user@$target_party_ip:~/
-	expect {
-		"(yes/no)?" {
-			send "yes\n"
-			expect "password:"
-			send "$password\n"
-		}
-		"password:" {
-			send "$password\n"
-		}
-	}
-	expect eof
-EOF
-
-/usr/bin/expect<<EOF
-    set timeout 300
-    spawn ssh $user@$target_party_ip
-	expect {
-		"(yes/no)?" {
-			send "yes\n"
-			expect "password:"
-			send "$password\n"
-		}
-		"password:" {
-			send "$password\n"
-		}
-	}
-	expect "#"
-	send "docker cp ~/run_task_script confs-${gid}_python_1:/data/projects/fate/python/${project}/run_task_script\r"
-	expect "#"
-	send "rm -rf ~/run_task_script\r"
-	expect "#"
-	send "docker exec -it confs-${gid}_python_1 bash\r"
-	expect "#"
-	send "cd ${project}/\r"
-	expect "#"
-	send "python ./run_task_script/run_task.py -m ${work_mode} -mid ${model_id} -mv ${model_version} -gid ${gid} -hid ${hid} -aid ${gid}\r"
-	expect "#"
-    send "exit\r"
-    expect "#"
-    send "exit\r"
-    expect eof
-EOF
-}
-
 
 main() {
 	if [ "$1" = "" ] || [ "$" = "--help" ]; then
@@ -636,10 +472,6 @@ main() {
 	elif [ "$1" = "--delete" ] || [ "$1" = "--del" ]; then
 		shift
 		Delete $@
-	elif [ "$1" = "--submit" ]; then
-		Submit "$@"
-	elif [ "$1" = "--bind" ]; then
-		Bind "$@"
 	else
 		Deploy "$@"
 	fi
