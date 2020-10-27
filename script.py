@@ -67,28 +67,28 @@ import argparse
 import os
 
 parser = argparse.ArgumentParser(add_help=True, description="Fedarated Learning command parser")
-parser.add_argument("-f", "--function", type=str, choices=["deploy", "upload", "submit", "delete"], required=True,
+parser.add_argument("-f", "--function", type=str, choices=["deploy", "upload", "submit", "delete", "load_bind", "predict"], required=True,
                     help="choose the function to execute.")
 
 parser.add_argument("-u", "--users", type=str, nargs='*',
                     help="username for logging in destination host, default--root.The first username will be regarded \
-as the user on regulator host. Need to specify when using '-f deploy'.")
+                    as the user on regulator host. Need to specify when using '-f deploy'.")
 
 parser.add_argument("-pw", "--password", type=str, nargs='+',
                     help="password for each user respectively.The first password will be regarded \
-as the password for logging in regulator host. Need to specify when using '-f deploy'.")
+                    as the password for logging in regulator host. Need to specify when using '-f deploy'.")
 
 parser.add_argument("-id", "--id", type=str, nargs='+',
                     help="party id assigned to each host respectively.The first id will be regarded \
-as the id assigned to regulator host. Need to specify when using '-f deploy'.")
+                    as the id assigned to regulator host. Need to specify when using '-f deploy'.")
 
 parser.add_argument("-ip", "--ip", type=str, nargs='+',
                     help="ipv4 address of each host respectively.The first ip will be regarded \
-as the ip of regulator host. Need to specify when using '-f deploy'.")
+                    as the ip of regulator host. Need to specify when using '-f deploy'.")
 
 parser.add_argument("-p", "--path", type=str, nargs='+', metavar='dataPath',
                     help="path of dataset(.csv file) on each host respectively. The first path will be regarded \
-as path of dataset on regulator host. Need to specify when using '-f deploy'.")
+                    as path of dataset on regulator host. Need to specify when using '-f deploy'.")
 
 parser.add_argument("-proj", "--project", type=str,
                     help="name of the training project. Need to specify when using '-f deploy' or '-f upload'.")
@@ -100,13 +100,29 @@ parser.add_argument("-tb", "--tablename", type=str,
                     help="name of data table to configure upload.json. Need to specify when using '-f upload'")
 
 parser.add_argument("-alg", "--algorithm", type=str, choices=["hetero_lr", "hetero_linr", "example"],
-                    help="configure the Machine Learning Algorithm.Need to specify when using '-f submit'")
+                    help="configure the Machine Learning Algorithm.")
 
-parser.add_argument("-gid", "--guestid", type=str,
-                    help="guset id for training, Only one! Need to specify when using '-f submit' ")
+parser.add_argument("-gid", "--guest_id", type=int,
+                    help="the id of the guest submitted the job.")
 
-parser.add_argument("-hid", "--hostid", type=str, nargs='+',
-                    help="host id for training, a list! Need to specify when using '-f submit'")
+parser.add_argument("-hid", "--host_id", type=int,
+                    help="the id of the host, needed when submitting the job.")
+
+parser.add_argument("-m", "--work_mode", type=int,
+                    help="the mode of the work, 0 means stand-alone deployment and 1 means multiple deployment,\
+                     needed when using'-f submit'.")
+
+parser.add_argument("-mid", "--model_id", type=int,
+                    help="the id of the model, needed when submitting the job.Needed when using '-f load_bind'")
+
+parser.add_argument("-mver", "--model_version", type=int,
+                    help="the version of the model, needed when submitting the job.Needed when using '-f load_bind'")
+
+parser.add_argument("-mname", "--model-name", type=str,
+                    help="a unique name assigned to the model.Needed when using '-f predict' or '-f load_bind'")
+
+parser.add_argument("-params", "--parameters", type=float, nargs="+",
+                    help="feature data used to make prediction. Needed when using '-f predict'")
 
 args = parser.parse_args()
 
@@ -145,102 +161,112 @@ def upload():
         ret = eval(run_cmd(["python", fate_flow_path, "-f", "upload", "-c", UPLOAD_JSON_PATH]))
         i += 1
 
+
 def delete():
     run_cmd(["bash", "./docker_deploy.sh", "--delete", "all"])
 
 
+def submit(alg, proj, gid, hid, work_mode):
+    os.system("bash ./docker_deploy.sh --submit -m {} -alg {} -proj {} -gid {} -hid {}".format(work_mode, alg, proj, gid, hid))
 
-def submit(alg, proj, gid, hid):
-    with open("./parties.conf", "r+", encoding="utf-8") as f:
-        for line in f.readlines():
-            if line.find("partyiplist") != -1:
-                line = line.strip("\n").strip("partyiplist=").strip("(").strip(")")
-                iplist = line.split(" ")
-            elif line.find("users") != -1:
-                line = line.strip("\n").strip("users=").strip("(").strip(")")
-                ulist = line.split(" ")
-                usr = ulist[0]
-            elif line.find("table_names") != -1:
-                line = line.strip("\n").strip("table_names=").strip("(").strip(")")
-                tlist = line.split()
-            elif line.find("passwords") != -1:
-                line = line.strip("\n").strip("passwords=").strip("(").strip(")")
-                plist = line.split(" ")
-            elif line.find("partylist") != -1:
-                line = line.strip("\n").strip("partylist=").strip("(").strip(")")
-                idlist = line.split(" ")
 
-    for idx in range(len(idlist)):
-        if idlist[idx] == gid:
-            guestip = iplist[idx]
-            pswd = plist[idx]
-            table = tlist[idx]
-            tlist.pop(idx)
-            newlist = [table]
-            newlist.extend(tlist)
-            tlist = " ".join(newlist)
+def bind(model_name, model_id, model_version):
+    pass
 
-    #print(guestip, usr, tlist, pswd)
+def predict(model_name, params):
+    pass
 
-    os.system("tar -zcvf run_task_script.tar.gz ./run_task_script")
-    trans = paramiko.Transport((guestip, 22))
-    trans.connect(username=usr, password=pswd)
-    sftp = paramiko.SFTP.from_transport(trans)
-    if usr == "root":
-        remote_path = "/root/run_task_script.tar.gz"
-    else:
-        remote_path = "/home/{usr}/run_task_script.tar.gz".format(usr=usr)
-    sftp.put("./run_task_script.tar.gz", remote_path)
-    trans.close()
-
-    cmds = [
-        "docker cp {path} confs-{gid}_python_1:/data/projects/fate/python/{project}/run_task_script.tar.gz".format(
-            gid=gid, project=proj, path=remote_path),
-        "rm -rf {path}".format(path=remote_path),
-        "cd {project}/".format(project=proj),
-        '''docker exec -i confs-{gid}_python_1 bash<<EOF
- cd {project}/
- tar zxvf run_task_script.tar.gz
- python ./run_task_script/run_task.py -m 1 -alg {alg} -proj {project} -t {table_name} -gid {gid} -hid {hid} -aid {gid}
- exit
- EOF'''.format(gid=gid, project=proj, alg=alg, table_name=tlist, hid=" ".join(hid)),
-        "exit"
-        ]
-
-    ssh = paramiko.SSHClient()
-    policy = paramiko.AutoAddPolicy()
-    ssh.set_missing_host_key_policy(policy)
-    ssh.connect(guestip, 22, usr, pswd)
-    stdin, stdout, stderr = ssh.exec_command(" && ".join(cmds))
-    print(stdout.read().decode("utf-8"))
-    print(stderr.read().decode("utf-8"))
-    # stdin, stdout, stderr = ssh.exec_command(
-    #     "docker cp ~/run_task_script.tar.gz confs-{gid}_python_1:/data/projects/fate/python/{project}/run_task_script".format(
-    #         gid=gid, project=proj))
-    # print(stdout.read().decode("utf-8"))
-    # ssh.connect(guestip, 22, usr, pswd)
-    # stdin, stdout, stderr = ssh.exec_command("rm -rf ~/run_task_script.tar.gz")
-    # print(stdout.read().decode("utf-8"))
-    # stdin, stdout, stderr = ssh.exec_command("docker exec -it confs-{gid}_python_1 bash".format(gid=gid))
-    # print(stdout.read().decode("utf-8"))
-    # stdin, stdout, stderr = ssh.exec_command("cd {project}/".format(project=proj))
-    # print(stdout.read().decode("utf-8"))
-    # stdin, stdout, stderr = ssh.exec_command("tar zxvf run_task_script.tar.gz")
-    # print(stdout.read().decode("utf-8"))
-    # stdin, stdout, stderr = ssh.exec_command("python ./run_task_script/run_task.py -m 1 -alg {alg} -proj {project} -t {table_name} -gid {gid} -hid {hid} -aid {gid}".format(alg=alg, project=proj, table_name=tlist, gid=gid, hid=" ".join(hid)))
-    # print(stdout.read().decode("utf-8"))
-    # stdout = json.load(stdout)
-    # if stdout["retcode"] != 0:
-    #     print("failed!")
-    #     return None
-    # model_id = stdout['data']['model_info']["model_id"]
-    # model_version = stdout['data']['model_info']["model_version"]
-    # job_id = stdout["job_id"]
-    # stdin, stdout, stderr = ssh.exec_command("exit")
-    # print(stdout.read().decode("utf-8"))
-    # stdin, stdout, stderr = ssh.exec_command("exit")
-    # print(stdout.read().decode("utf-8"))
-    # print(model_id, model_version, job_id)
+# def submit(alg, proj, gid, hid):
+#     with open("./parties.conf", "r+", encoding="utf-8") as f:
+#         for line in f.readlines():
+#             if line.find("partyiplist") != -1:
+#                 line = line.strip("\n").strip("partyiplist=").strip("(").strip(")")
+#                 iplist = line.split(" ")
+#             elif line.find("users") != -1:
+#                 line = line.strip("\n").strip("users=").strip("(").strip(")")
+#                 ulist = line.split(" ")
+#                 usr = ulist[0]
+#             elif line.find("table_names") != -1:
+#                 line = line.strip("\n").strip("table_names=").strip("(").strip(")")
+#                 tlist = line.split()
+#             elif line.find("passwords") != -1:
+#                 line = line.strip("\n").strip("passwords=").strip("(").strip(")")
+#                 plist = line.split(" ")
+#             elif line.find("partylist") != -1:
+#                 line = line.strip("\n").strip("partylist=").strip("(").strip(")")
+#                 idlist = line.split(" ")
+#
+#     for idx in range(len(idlist)):
+#         if idlist[idx] == gid:
+#             guestip = iplist[idx]
+#             pswd = plist[idx]
+#             table = tlist[idx]
+#             tlist.pop(idx)
+#             newlist = [table]
+#             newlist.extend(tlist)
+#             tlist = " ".join(newlist)
+#
+#     #print(guestip, usr, tlist, pswd)
+#
+#     os.system("tar -zcvf run_task_script.tar.gz ./run_task_script")
+#     trans = paramiko.Transport((guestip, 22))
+#     trans.connect(username=usr, password=pswd)
+#     sftp = paramiko.SFTP.from_transport(trans)
+#     if usr == "root":
+#         remote_path = "/root/run_task_script.tar.gz"
+#     else:
+#         remote_path = "/home/{usr}/run_task_script.tar.gz".format(usr=usr)
+#     sftp.put("./run_task_script.tar.gz", remote_path)
+#     trans.close()
+#
+#     cmds = [
+#         "docker cp {path} confs-{gid}_python_1:/data/projects/fate/python/{project}/run_task_script.tar.gz".format(
+#             gid=gid, project=proj, path=remote_path),
+#         "rm -rf {path}".format(path=remote_path),
+#         "cd {project}/".format(project=proj),
+#         '''docker exec -ti confs-{gid}_python_1 bash<<EOF
+#  cd {project}/
+#  tar zxvf run_task_script.tar.gz
+#  python ./run_task_script/run_task.py -m 1 -alg {alg} -proj {project} -t {table_name} -gid {gid} -hid {hid} -aid {gid}
+#  exit
+#  EOF'''.format(gid=gid, project=proj, alg=alg, table_name=tlist, hid=" ".join(hid)),
+#         "exit"
+#         ]
+#
+#     ssh = paramiko.SSHClient()
+#     policy = paramiko.AutoAddPolicy()
+#     ssh.set_missing_host_key_policy(policy)
+#     ssh.connect(guestip, 22, usr, pswd)
+#     stdin, stdout, stderr = ssh.exec_command(" && ".join(cmds))
+#     print(stdout.read().decode("utf-8"))
+#     print(stderr.read().decode("utf-8"))
+#     # stdin, stdout, stderr = ssh.exec_command(
+#     #     "docker cp ~/run_task_script.tar.gz confs-{gid}_python_1:/data/projects/fate/python/{project}/run_task_script".format(
+#     #         gid=gid, project=proj))
+#     # print(stdout.read().decode("utf-8"))
+#     # ssh.connect(guestip, 22, usr, pswd)
+#     # stdin, stdout, stderr = ssh.exec_command("rm -rf ~/run_task_script.tar.gz")
+#     # print(stdout.read().decode("utf-8"))
+#     # stdin, stdout, stderr = ssh.exec_command("docker exec -it confs-{gid}_python_1 bash".format(gid=gid))
+#     # print(stdout.read().decode("utf-8"))
+#     # stdin, stdout, stderr = ssh.exec_command("cd {project}/".format(project=proj))
+#     # print(stdout.read().decode("utf-8"))
+#     # stdin, stdout, stderr = ssh.exec_command("tar zxvf run_task_script.tar.gz")
+#     # print(stdout.read().decode("utf-8"))
+#     # stdin, stdout, stderr = ssh.exec_command("python ./run_task_script/run_task.py -m 1 -alg {alg} -proj {project} -t {table_name} -gid {gid} -hid {hid} -aid {gid}".format(alg=alg, project=proj, table_name=tlist, gid=gid, hid=" ".join(hid)))
+#     # print(stdout.read().decode("utf-8"))
+#     # stdout = json.load(stdout)
+#     # if stdout["retcode"] != 0:
+#     #     print("failed!")
+#     #     return None
+#     # model_id = stdout['data']['model_info']["model_id"]
+#     # model_version = stdout['data']['model_info']["model_version"]
+#     # job_id = stdout["job_id"]
+#     # stdin, stdout, stderr = ssh.exec_command("exit")
+#     # print(stdout.read().decode("utf-8"))
+#     # stdin, stdout, stderr = ssh.exec_command("exit")
+#     # print(stdout.read().decode("utf-8"))
+#     # print(model_id, model_version, job_id)
 
 
 
@@ -252,3 +278,7 @@ elif args.function == "upload":
     upload()
 elif args.function == "delete":
     delete()
+elif args.function == "bind":
+    bind()
+
+
