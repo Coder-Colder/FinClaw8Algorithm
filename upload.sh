@@ -184,6 +184,8 @@ EOF
 	expect "#"
 	send "rm -rf ~/run_task_script\r"
 	expect "#"
+	send "rm -rf ~/saveInfo.py\r"
+	expect "#"
 	send "docker exec -it confs-${gid}_python_1 bash\r"
 	expect "#"
 	send "cd ${project}/\r"
@@ -228,6 +230,44 @@ EOF
 		}
 	}
 	expect eof
+EOF
+}
+
+Bind() {
+	work_mode=$workmode
+	alg=xxx
+	proj=xxx
+	model_id=${3}
+	model_version=${5}
+	model_name=${7}
+	gid=${partylist[0]}
+	hid=${partylist[@]:1:#partylist[*]-1}
+	table_name=xxx
+	target_party_ip=${partyiplist[0]}
+	password=${passwords[0]}
+/usr/bin/expect<<EOF
+    spawn ssh $user@$target_party_ip
+	expect {
+		"(yes/no)?" {
+			send "yes\n"
+			expect "password:"
+			send "$password\n"
+		}
+		"password:" {
+			send "$password\n"
+		}
+	}
+	expect "#"
+	send "docker exec -it confs-${gid}_python_1 bash\r"
+	expect "#"
+	send "cd ${project}/\r"
+	expect "#"
+	send "python ./run_task_script/run_task.py -m ${work_mode} -s 1 -alg ${alg} -proj ${proj} -t ${table_name} -mid ${model_id} -mv ${model_version} -gid ${gid} -hid ${hid} -aid ${gid}\r"
+	expect "#"
+    send "exit\r"
+    expect "#"
+    send "exit\r"
+    expect eof
 EOF
 }
 
