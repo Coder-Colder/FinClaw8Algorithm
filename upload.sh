@@ -305,6 +305,76 @@ Bind() {
 EOF
 }
 
+Query() {
+    job=$3
+/usr/bin/expect<<EOF
+    set timeout $timecnt
+    spawn ssh $user@$target_party_ip
+	expect {
+		"(yes/no)?" {
+			send "yes\n"
+			expect "password:"
+			send "$password\n"
+		}
+		"password:" {
+			send "$password\n"
+		}
+	}
+	expect "#"
+	send "docker exec -it confs-${gid}_python_1 bash\r"
+	expect "#"
+	send "cd ${project}/\r"
+	expect "#"
+	send "python ./script.py -f r_query -jid $job\r"
+    expect {
+		"success" {
+			expect "#"
+			send "exit\r"
+		}
+		"#" {
+			send "exit\r"
+		}
+	}
+	expect "#"
+    send "exit\r"
+    expect eof
+EOF
+/usr/bin/expect<<EOF
+    set timeout $timecnt
+    spawn ssh $user@$target_party_ip
+	expect {
+		"(yes/no)?" {
+			send "yes\n"
+			expect "password:"
+			send "$password\n"
+		}
+		"password:" {
+			send "$password\n"
+		}
+	}
+	expect "#"
+	send "docker cp confs-${gid}_python_1:/data/projects/fate/info.txt ~/info.txt\r"
+	expect "#"
+    send "exit\r"
+    expect eof
+EOF
+/usr/bin/expect<<EOF
+    set timeout $timecnt
+	spawn scp $user@$target_party_ip:~/info.txt ${WORKINGDIR}/
+	expect {
+		"(yes/no)?" {
+			send "yes\n"
+			expect "password:"
+			send "$password\n"
+		}
+		"password:" {
+			send "$password\n"
+		}
+	}
+	expect eof
+EOF
+}
+
 main() {
 	if [ "$1" = "" ] || [ "$" = "--help" ]; then
 		ShowUsage
@@ -313,6 +383,8 @@ main() {
 		Submit "$@"
 	elif [ "$1" = "--bind" ]; then
 		Bind "$@"
+	elif [ "$1" = "--query" ]; then
+	    Query "$@"
 	else
 		Upload "$@"
 	fi

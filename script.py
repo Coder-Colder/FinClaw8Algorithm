@@ -137,7 +137,7 @@ import argparse
 import os
 
 parser = argparse.ArgumentParser(add_help=True, description="Fedarated Learning command parser")
-parser.add_argument("-f", "--function", type=str, choices=["deploy", "upload", "submit", "delete", "load_bind", "predict", "r_upload"], required=True,
+parser.add_argument("-f", "--function", type=str, choices=["deploy", "delete", "upload", "r_upload", "submit", "load_bind", "predict", "query", "r_query"], required=True,
                     help="choose the function to execute.")
 
 parser.add_argument("-u", "--users", type=str, nargs='*',
@@ -190,6 +190,9 @@ parser.add_argument("-mname", "--model_name", type=str,
 
 parser.add_argument("-params", "--parameters", type=float, nargs="+",
                     help="feature data used to make prediction. Needed when using '-f predict'")
+
+parser.add_argument("-jid", "--jobid", type=str,
+                    help="id of job to query on. Needed when using '-f query' or '-f r_query'")
 
 args = parser.parse_args()
 
@@ -300,6 +303,23 @@ def predict(model_name, params):
     os.system(cmd)
 
 
+def _query(jobid):
+    ret = eval(run_cmd(["python", fate_flow_path, "-f", "query_job", "-j", jobid, "-r", "guest"]))
+    ret = json.loads(ret)
+    status = ret["retcode"]
+    if status != 0:
+        print("running")
+    check_data = ret["data"]
+    with open("info.txt", "w+") as f:
+        for i in len(check_data):
+            f.write(check_data[i]["f_state"]+"\n")
+
+def query(jobid):
+    os.system("bash ./upload.sh --query -jobid {}".format(jobid))
+    info = {}
+    with open("./info.txt", "r") as f:
+        for line in f.readlines():
+            print(line.strip("\n"))
 
 if args.function == "deploy":
     deploy(args.ip, args.id, args.password, args.users)
@@ -315,3 +335,7 @@ elif args.function == "upload":
     upload(args.guestpair, args.hostpair, args.project)
 elif args.function == "predict":
     predict(args.model_name, args.parameters)
+elif args.function == "query":
+    query(args.jobid)
+elif args.function == "r_query":
+    _query(args.jobid)
