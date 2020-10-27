@@ -124,15 +124,15 @@ class TaskManager(object):
 
 
 class TrainTask(TaskManager):
-    def __init__(self, data_type, project_name, table_name, guest_id, host_id, arbiter_id, work_mode):
+    def __init__(self, data_type, project_name, table_name, guest_id, host_id, arbiter_id, work_mode, model_id, model_version):
         self.method = 'all'
         self.guest_id = guest_id
         self.host_id = host_id
         self.arbiter_id = arbiter_id
         self.work_mode = work_mode
         self._data_type = data_type
-        self.model_id = None
-        self.model_version = None
+        self.model_id = model_id
+        self.model_version = model_version
         self.dsl_file = None
         self.train_component_name = None
         self._parse_argv(project_name, table_name)
@@ -164,40 +164,42 @@ class TrainTask(TaskManager):
     def _check_status(self, jobid):
         pass
 
-    def run(self, start_serving=0):
-        config_dir_path = self._make_runtime_conf()
-        start_task_cmd = ['python', fate_flow_path, "-f", "submit_job", "-d", self.dsl_file,
-                        "-c", config_dir_path]
-        stdout = self.start_task(start_task_cmd)
-        status = stdout["retcode"]
-
-        if status != 0:
-            raise ValueError(
-                "Training task exec fail, status:{}, stdout:{}".format(status, stdout))
-        else:
-            jobid = stdout["jobId"]
-
-        self.model_id = stdout['data']['model_info']['model_id']
-        self.model_version = stdout['data']['model_info']['model_version']
-        print(stdout)
-        
-        start_task_cmd = ['python', "/data/projects/fate/saveInfo.py", self.model_id, self.model_version]
-        stdout = self.start_task(start_task_cmd)
-        
-        self._check_status(jobid)
-
-        auc = self._get_auc(jobid)
-        if auc < self.auc_base:
-            time_print("[Warning]  The auc: {} is lower than expect value: {}".format(auc, self.auc_base))
-        else:
-            time_print("[Train] train auc:{}".format(auc))
-        time.sleep(WAIT_UPLOAD_TIME / 100)
-
+    def run(self, start_serving):
         if start_serving:
             self._load_model()
             self._bind_model()
+            self.start_predict_task()
+        else:
+            config_dir_path = self._make_runtime_conf()
+            start_task_cmd = ['python', fate_flow_path, "-f", "submit_job", "-d", self.dsl_file,
+                            "-c", config_dir_path]
+            stdout = self.start_task(start_task_cmd)
+            status = stdout["retcode"]
 
-        self.start_predict_task()
+            if status != 0:
+                raise ValueError(
+                    "Training task exec fail, status:{}, stdout:{}".format(status, stdout))
+            else:
+                jobid = stdout["jobId"]
+
+            self.model_id = stdout['data']['model_info']['model_id']
+            self.model_version = stdout['data']['model_info']['model_version']
+            print(stdout)
+            
+            start_task_cmd = ['python', "/data/projects/fate/saveInfo.py", self.model_id, self.model_version]
+            stdout = self.start_task(start_task_cmd)
+            
+            # self._check_status(jobid)
+            #
+            # auc = self._get_auc(jobid)
+            # if auc < self.auc_base:
+            #     time_print("[Warning]  The auc: {} is lower than expect value: {}".format(auc, self.auc_base))
+            # else:
+            #     time_print("[Train] train auc:{}".format(auc))
+            # time.sleep(WAIT_UPLOAD_TIME / 100)
+            #
+            # self.start_predict_task()
+
 
     def start_predict_task(self):
         config_dir_path = self._make_runtime_conf("predict")
@@ -279,7 +281,7 @@ class TrainTask(TaskManager):
         json_info["service_id"] = self.model_id
         json_info["initiator"]["party_id"] = str(self.guest_id)
         json_info["role"]["guest"] = [str(self.guest_id)]
-        json_info["role"]["host"] = self.host_id
+        json_info["role"]["host"] = [str(i) for i in self.host_id]
         json_info["role"]["arbiter"] = [str(self.arbiter_id)]
         json_info["job_parameters"]["work_mode"] = self.work_mode
         json_info["job_parameters"]["model_id"] = self.model_id
@@ -338,8 +340,8 @@ def replicate_properties(json_dict: dict, host_num: int):
 
 
 class TrainMultiHostTask(TrainTask):
-    def __init__(self, algorithm_name, project_name, table_name, data_type, guest_id, host_id, arbiter_id, work_mode):
-        super().__init__(data_type, project_name, table_name, guest_id, host_id, arbiter_id, work_mode)
+    def __init__(self, algorithm_name, project_name, table_name, data_type, guest_id, host_id, arbiter_id, work_mode, model_id, model_version):
+        super().__init__(data_type, project_name, table_name, guest_id, host_id, arbiter_id, work_mode, model_id, model_version)
         self.dsl_file, self.train_component_name, self.input_template = get_configuration_file(algorithm_name)
 
     def _make_runtime_conf(self, conf_type='train'):
@@ -402,6 +404,8 @@ def main():
     arg_parser = argparse.ArgumentParser()
 
     arg_parser.add_argument("-m", "--mode", type=int, help="work mode", choices=[0, 1], required=True)
+    arg_parser.add_argument("-mid", "--model_id", type=str, help="model id", default=None)
+    arg_parser.add_argument("-mv", "--model_version", type=str, help="mdoel version", default=None)
     arg_parser.add_argument("-alg", "--algorithm", type=str, help="algorithm module to use", required=True)
     arg_parser.add_argument("-proj", "--project", type=str, help="project name", required=True)
     arg_parser.add_argument("-t", "--table", nargs='+', type=str, help="table name", required=True)
@@ -434,9 +438,11 @@ def main():
     algorithm_name = args.algorithm
     project_name = args.project
     table_name = args.table
+    model_id = args.model_id
+    model_version = args.model_version
 
-    task = TrainMultiHostTask(algorithm_name, project_name, table_name, file_type, guest_id, host_id, arbiter_id, work_mode)
-    task.run()
+    task = TrainMultiHostTask(algorithm_name, project_name, table_name, file_type, guest_id, host_id, arbiter_id, work_mode, model_id, model_version)
+    task.run(start_serving)
     # task = TrainLRTask(file_type, guest_id, host_id, arbiter_id, work_mode)
     # task.run(start_serving)
     #
