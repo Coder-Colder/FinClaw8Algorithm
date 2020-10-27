@@ -124,7 +124,7 @@ class TaskManager(object):
 
 
 class TrainTask(TaskManager):
-    def __init__(self, data_type, project_name, table_name, guest_id, host_id, arbiter_id, work_mode, model_id, model_version):
+    def __init__(self, data_type, project_name, table_name, guest_id, host_id, arbiter_id, work_mode, model_id, model_version, model_name):
         self.method = 'all'
         self.guest_id = guest_id
         self.host_id = host_id
@@ -133,6 +133,7 @@ class TrainTask(TaskManager):
         self._data_type = data_type
         self.model_id = model_id
         self.model_version = model_version
+        self.mode_name = model_name
         self.dsl_file = None
         self.train_component_name = None
         self._parse_argv(project_name, table_name)
@@ -278,7 +279,7 @@ class TrainTask(TaskManager):
     def __config_bind_load(self, template):
         with open(template, 'r', encoding='utf-8') as f:
             json_info = json.loads(f.read())
-        json_info["service_id"] = self.model_id
+        json_info["service_id"] = self.model_name
         json_info["initiator"]["party_id"] = str(self.guest_id)
         json_info["role"]["guest"] = [str(self.guest_id)]
         json_info["role"]["host"] = [str(i) for i in self.host_id]
@@ -343,8 +344,8 @@ def replicate_properties(json_dict: dict, host_num: int):
 
 
 class TrainMultiHostTask(TrainTask):
-    def __init__(self, algorithm_name, project_name, table_name, data_type, guest_id, host_id, arbiter_id, work_mode, model_id, model_version):
-        super().__init__(data_type, project_name, table_name, guest_id, host_id, arbiter_id, work_mode, model_id, model_version)
+    def __init__(self, algorithm_name, project_name, table_name, data_type, guest_id, host_id, arbiter_id, work_mode, model_id, model_version, model_name):
+        super().__init__(data_type, project_name, table_name, guest_id, host_id, arbiter_id, work_mode, model_id, model_version, model_name)
         self.dsl_file, self.train_component_name, self.input_template = get_configuration_file(algorithm_name)
 
     def _make_runtime_conf(self, conf_type='train'):
@@ -409,6 +410,7 @@ def main():
     arg_parser.add_argument("-m", "--mode", type=int, help="work mode", choices=[0, 1], required=True)
     arg_parser.add_argument("-mid", "--model_id", type=str, help="model id", default=None)
     arg_parser.add_argument("-mv", "--model_version", type=str, help="mdoel version", default=None)
+    arg_parser.add_argument("-mn", "--model_name", type=str, help="model name", default=None)
     arg_parser.add_argument("-alg", "--algorithm", type=str, help="algorithm module to use", required=True)
     arg_parser.add_argument("-proj", "--project", type=str, help="project name", required=True)
     arg_parser.add_argument("-t", "--table", nargs='+', type=str, help="table name", required=True)
@@ -422,6 +424,7 @@ def main():
     arg_parser.add_argument("-gid", "--guest_id", type=int, help="guest party id", required=True)
     arg_parser.add_argument("-hid", "--host_id", nargs='+', type=int, help="host party id", required=True)
     arg_parser.add_argument("-aid", "--arbiter_id", type=int, help="arbiter party id", required=True)
+
 
     arg_parser.add_argument("--add_sbt", help="test sbt or not", type=int,
                             default=1, choices=[0, 1])
@@ -443,8 +446,9 @@ def main():
     table_name = args.table
     model_id = args.model_id
     model_version = args.model_version
+    model_name = args.model_name
 
-    task = TrainMultiHostTask(algorithm_name, project_name, table_name, file_type, guest_id, host_id, arbiter_id, work_mode, model_id, model_version)
+    task = TrainMultiHostTask(algorithm_name, project_name, table_name, file_type, guest_id, host_id, arbiter_id, work_mode, model_id, model_version, model_name)
     task.run(start_serving)
     # task = TrainLRTask(file_type, guest_id, host_id, arbiter_id, work_mode)
     # task.run(start_serving)
