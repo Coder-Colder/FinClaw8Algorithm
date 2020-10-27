@@ -6,7 +6,6 @@
 2. Docker: 18+
 3. Docker-Compose: 1.24+
 4. 部署了kubefate-1.4.4
-5. 安装第三方python库: paramiko
 
 部署方式如下：
 
