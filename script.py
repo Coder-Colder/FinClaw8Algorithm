@@ -222,11 +222,11 @@ def deploy(iplist, idlist, passwordlist, users):
 
 def _upload(datapath, project, tablename):
     create_upload_json(datapath, project, tablename)
-    ret = eval(run_cmd(["python", fate_flow_path, "-f", "upload", "-c", UPLOAD_JSON_PATH]))
+    ret = eval(run_cmd(["python", fate_flow_path, "-f", "upload", "-c", UPLOAD_JSON_PATH, "-drop", "1"]))
     total_cnt = 20
     i = 0
     while ret["retcode"] != 0 and i < total_cnt:
-        ret = eval(run_cmd(["python", fate_flow_path, "-f", "upload", "-c", UPLOAD_JSON_PATH]))
+        ret = eval(run_cmd(["python", fate_flow_path, "-f", "upload", "-c", UPLOAD_JSON_PATH, "-drop", "1"]))
         i += 1
     print(ret)
 
