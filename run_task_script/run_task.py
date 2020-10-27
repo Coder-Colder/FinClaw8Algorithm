@@ -308,7 +308,10 @@ class TrainTask(TaskManager):
         data = stdout["data"]
         try:
             guest_retcode = data["detail"]["guest"][str(self.guest_id)]["retcode"]
-            host_retcode = data["detail"]["host"][str(self.host_id)]["retcode"]
+            for id in [str(i) for i in self.host_id]:
+                host_retcode = data["detail"]["host"][id]["retcode"]
+                if host_retcode != 0:
+                    break
         except KeyError:
             raise ValueError(
                 "Load model failed, status:{}, stdout:{}".format(status, stdout))
