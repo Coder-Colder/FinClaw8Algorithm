@@ -177,7 +177,6 @@ DeployPartyInternal() {
 	#ssh -tt $user@$target_party_ip <<eeooff
 
 /usr/bin/expect <<EOF
-    set timeout 300
 	spawn scp ${WORKINGDIR}/outputs/confs-$target_party_id.tar $user@$target_party_ip:~/
 	expect {
 		"(yes/no)?" {
@@ -195,7 +194,6 @@ EOF
 	echo "$target_party_ip training cluster copy is ok!"
 
 /usr/bin/expect <<EOF
-    set timeout 300
 	spawn ssh $user@$target_party_ip
 	expect {
 		"(yes/no)?" {
@@ -280,7 +278,6 @@ DeployPartyUpload() {
 EOF
 
 /usr/bin/expect<<EOF
-    set timeout 300
     spawn ssh $user@$target_party_serving_ip
 	expect {
 		"(yes/no)?" {
@@ -355,7 +352,6 @@ DeployPartyServing() {
 	#echo "party $target_party_id serving cluster copy is ok!"
 	#ssh -tt $user@$target_party_serving_ip <<eeooff
 /usr/bin/expect <<EOF
-    set timeout 300
 	spawn scp ${WORKINGDIR}/outputs/serving-$target_party_id.tar $user@$target_party_serving_ip:~/
 	expect {
 		"(yes/no)?" {
@@ -372,7 +368,6 @@ EOF
 	echo "party $target_party_id serving cluster copy is ok!"
 
 /usr/bin/expect <<EOF
-    set timeout 300
 	spawn ssh $user@$target_party_serving_ip
 	expect {
 		"(yes/no)?" {
@@ -437,7 +432,6 @@ DeleteCluster() {
 	# delete training cluster
 	if [ "$cluster_type" == "--training" ]; then
 /usr/bin/expect <<EOF
-    set timeout 300
 	spawn ssh $user@$target_party_ip
 	expect {
 		"(yes/no)?" {
@@ -457,12 +451,11 @@ DeleteCluster() {
 	send "exit\r"
 	expect eof
 EOF
-		#ssh -tt $user@$target_party_ip
+		#ssh -tt $user@$target_party_ip 
 		echo "party $target_party_id training cluster is deleted!"
 	# delete serving cluster
 	elif [ "$cluster_type" == "--serving" ]; then
 /usr/bin/expect <<EOF
-    set timeout 300
 	spawn ssh $user@$target_party_serving_ip
 	expect {
 		"(yes/no)?" {
@@ -482,14 +475,13 @@ EOF
 	send "exit\r"
 	expect eof
 EOF
-		#ssh -tt $user@$target_party_serving_ip
+		#ssh -tt $user@$target_party_serving_ip 
 		echo "party $target_party_id serving cluster is deleted!"
 	# delete training cluster and serving cluster
 	else
 		# if party is exchange then delete exchange cluster
 		if [ "$target_party_id" == "exchange" ]; then
 /usr/bin/expect <<EOF
-    set timeout 300
 	spawn ssh $user@$target_party_ip
 	expect {
 		"(yes/no)?" {
@@ -509,10 +501,9 @@ EOF
 	send "exit\r"
 	expect eof
 EOF
-			#ssh -tt $user@$target_party_ip
+			#ssh -tt $user@$target_party_ip 
 		else
 /usr/bin/expect <<EOF
-    set timeout 300
 	spawn ssh $user@$target_party_ip
 	expect {
 		"(yes/no)?" {
@@ -532,10 +523,9 @@ EOF
 	send "exit\r"
 	expect eof
 EOF
-			#ssh -tt $user@$target_party_ip
+			#ssh -tt $user@$target_party_ip 
 			echo "party $target_party_id training cluster is deleted!"
 /usr/bin/expect <<EOF
-    set timeout 300
 	spawn ssh $user@$target_party_serving_ip
 	expect {
 		"(yes/no)?" {
@@ -555,7 +545,7 @@ EOF
 	send "exit\r"
 	expect eof
 EOF
-			#ssh -tt $user@$target_party_serving_ip
+			#ssh -tt $user@$target_party_serving_ip 
 			echo "party $target_party_id serving cluster is deleted!"
 		fi
 	fi
@@ -576,7 +566,6 @@ Submit() {
 	target_party_ip=${partyiplist[0]}
 	password=${passwords[0]}
 /usr/bin/expect<<EOF
-    set timeout 300
     spawn scp -r ${WORKINGDIR}/run_task_script $user@$target_party_ip:~/
 	expect {
 		"(yes/no)?" {
@@ -591,7 +580,6 @@ Submit() {
 	expect eof
 EOF
 /usr/bin/expect<<EOF
-    set timeout 300
 	spawn scp ${WORKINGDIR}/saveInfo.py $user@$target_party_ip:~/
 	expect {
 		"(yes/no)?" {
@@ -607,7 +595,6 @@ EOF
 EOF
 
 /usr/bin/expect<<EOF
-    set timeout 300
     spawn ssh $user@$target_party_ip
 	expect {
 		"(yes/no)?" {
@@ -626,8 +613,6 @@ EOF
 	expect "#"
 	send "rm -rf ~/run_task_script\r"
 	expect "#"
-	send "rm -rf ~/saveInfo.py\r"
-	expect "#"
 	send "docker exec -it confs-${gid}_python_1 bash\r"
 	expect "#"
 	send "cd ${project}/\r"
@@ -640,7 +625,6 @@ EOF
     expect eof
 EOF
 /usr/bin/expect<<EOF
-    set timeout 300
     spawn ssh $user@$target_party_ip
 	expect {
 		"(yes/no)?" {
@@ -659,7 +643,6 @@ EOF
     expect eof
 EOF
 /usr/bin/expect<<EOF
-    set timeout 300
 	spawn scp $user@$target_party_ip:~/info.txt ${WORKINGDIR}/
 	expect {
 		"(yes/no)?" {
@@ -684,7 +667,6 @@ Bind() {
 	target_party_ip=${partyiplist[0]}
 	password=${passwords[0]}
 /usr/bin/expect<<EOF
-    set timeout 300
     spawn scp -r ${WORKINGDIR}/run_task_script $user@$target_party_ip:~/
 	expect {
 		"(yes/no)?" {
@@ -700,7 +682,6 @@ Bind() {
 EOF
 
 /usr/bin/expect<<EOF
-    set timeout 300
     spawn ssh $user@$target_party_ip
 	expect {
 		"(yes/no)?" {
