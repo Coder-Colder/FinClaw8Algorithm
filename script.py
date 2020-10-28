@@ -230,7 +230,10 @@ def _upload(datapath, project, tablename):
     total_cnt = 20
     i = 0
     while ret["retcode"] != 0 and i < total_cnt:
-        ret = eval(run_cmd(["python", fate_flow_path, "-f", "upload", "-c", UPLOAD_JSON_PATH]))
+        if ret["retcode"] == 100:
+            ret = eval(run_cmd(["python", fate_flow_path, "-f", "upload", "-c", UPLOAD_JSON_PATH, "-drop", "1"]))
+        else:
+            ret = eval(run_cmd(["python", fate_flow_path, "-f", "upload", "-c", UPLOAD_JSON_PATH]))
         i += 1
     print(ret)
 
