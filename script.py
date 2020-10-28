@@ -219,7 +219,8 @@ def deploy(iplist, idlist, passwordlist, users):
             users.append("root")
     create_parties_json(iplist, idlist, passwordlist, users)
     run_cmd(["bash", "./generate_config.sh"])
-    run_cmd(["bash", "./docker_deploy.sh", "all"])
+    ret = run_cmd(["bash", "./docker_deploy.sh", "all"])
+    print(ret)
     print("success")
 
 
