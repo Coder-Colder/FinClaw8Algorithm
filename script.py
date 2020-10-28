@@ -311,7 +311,7 @@ def _query(jobid):
     if status != 0:
         print("running")
     check_data = ret["data"]
-    with open("info.txt", "w+") as f:
+    with open("../info.txt", "w+") as f:
         for i in len(check_data):
             f.write(check_data[i]["f_state"]+"\n")
 
