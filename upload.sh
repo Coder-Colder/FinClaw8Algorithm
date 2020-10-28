@@ -307,6 +307,9 @@ EOF
 
 Query() {
     job=$3
+    target_party_ip=${partyiplist[0]}
+    password=${passwords[0]}
+    gid=${partylist[0]}
 /usr/bin/expect<<EOF
     set timeout $timecnt
     spawn ssh $user@$target_party_ip
