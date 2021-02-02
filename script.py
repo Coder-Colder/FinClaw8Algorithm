@@ -194,6 +194,8 @@ parser.add_argument("-params", "--parameters", type=float, nargs="+",
 parser.add_argument("-jid", "--jobid", type=str,
                     help="id of job to query on. Needed when using '-f query' or '-f r_query'")
 
+parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")
+
 args = parser.parse_args()
 
 
@@ -218,10 +220,14 @@ def deploy(iplist, idlist, passwordlist, users):
         for i in range(len(idlist) - len(users)):
             users.append("root")
     create_parties_json(iplist, idlist, passwordlist, users)
-    run_cmd(["bash", "./generate_config.sh"])
-    ret = run_cmd(["bash", "./docker_deploy.sh", "all"])
-    print(ret)
-    print("success")
+    if args.verbose:
+        os.system("bash ./generate_config.sh")
+        os.system("bash ./docker_deploy.sh all")
+    else:
+        run_cmd(["bash", "./generate_config.sh"])
+        run_cmd(["bash", "./docker_deploy.sh", "all"])
+    '''TODO: judge success or not?'''
+
 
 
 def _upload(datapath, project, tablename):
@@ -269,19 +275,29 @@ def upload(guest_pair, host_pair, project):
         party_path.append((host_pair[idx], host_pair[idx+1]))
     party2ip, party2usr, party2pswd = getPartyInfo()
     create_upload_conf(party_path, party2ip, party2usr, party2pswd, project)
-    os.system("bash ./upload.sh all")
-    print("success")
+    if args.verbose:
+        os.system("bash ./upload.sh all")
+    else:
+        pass
+    '''TODO: judge success or not?'''
 
 
 def delete():
-    run_cmd(["bash", "./docker_deploy.sh", "--delete", "all"])
-    print("success")
+    if args.verbose:
+        os.system("bash ./docker_deploy.sh --delete all")
+    else:
+        run_cmd(["bash", "./docker_deploy.sh", "--delete", "all"])
+    '''TODO: judge success or not?'''
 
 
 def submit(alg, proj, work_mode):
     with open(UPLOAD_CONF_PATH, "a+") as f:
         f.write("workmode={}\n".format(work_mode))
-    os.system("bash ./upload.sh --submit -m {} -alg {} -proj {}".format(work_mode, alg, proj))
+    if args.verbose:
+        os.system("bash ./upload.sh --submit -m {} -alg {} -proj {}".format(work_mode, alg, proj))
+    else:
+        run_cmd("bash ./upload.sh --submit -m {} -alg {} -proj {}".format(work_mode, alg, proj).split(" "))
+    '''TODO: judge success or not?'''
     info={}
     info["retcode"] = 0
     with open("./info.txt", "r") as f:
@@ -291,8 +307,13 @@ def submit(alg, proj, work_mode):
     print(info)
 
 
+
 def bind(model_name, model_id, model_version):
-    os.system("bash ./upload.sh --bind -mid {} -mver {} -mname {}".format(model_id, model_version, model_name))
+    if args.verbose:
+        os.system("bash ./upload.sh --bind -mid {} -mver {} -mname {}".format(model_id, model_version, model_name))
+    else:
+        run_cmd("bash ./upload.sh --bind -mid {} -mver {} -mname {}".format(model_id, model_version, model_name).split(" "))
+    '''TODO: judge success or not?'''
 
 
 def predict(model_name, params):
@@ -304,7 +325,6 @@ def predict(model_name, params):
     predict_ip = get_guest_ip(PARTIES_PATH)
     cmd = ("curl -X POST -H 'Content-Type: application/json' -d '" + predict_str +
            " 'http://" + predict_ip + ":8059/federation/v1/inference'")
-
     os.system(cmd)
 
 
@@ -320,11 +340,16 @@ def _query(jobid):
             f.write(check_data[i]["f_state"]+"\n")
 
 def query(jobid):
-    os.system("bash ./upload.sh --query -jobid {}".format(jobid))
-    info = {}
+    if args.verbose:
+        os.system("bash ./upload.sh --query -jobid {}".format(jobid))
+    else:
+        run_cmd("bash ./upload.sh --query -jobid {}".format(jobid).split(" "))
+    ret = ""
     with open("./info.txt", "r") as f:
         for line in f.readlines():
-            print(line.strip("\n"))
+            ret += line.strip("\n")
+    print(ret)
+
 
 if args.function == "deploy":
     deploy(args.ip, args.id, args.password, args.users)
@@ -344,3 +369,4 @@ elif args.function == "query":
     query(args.jobid)
 elif args.function == "r_query":
     _query(args.jobid)
+
