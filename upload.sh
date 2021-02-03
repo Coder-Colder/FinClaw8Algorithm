@@ -68,7 +68,7 @@ PartyUpload() {
 			expect "password:"
 			send "$password\n"
 		}
-		"(yes/no/[fingerprint])?" {
+		"(yes/no/\[fingerprint\])?" {
 			send "yes\n"
 			expect "password:"
 			send "$password\n"
@@ -89,7 +89,7 @@ EOF
 			expect "password:"
 			send "$password\n"
 		}
-		"(yes/no/[fingerprint])?" {
+		"(yes/no/\[fingerprint\])?" {
 			send "yes\n"
 			expect "password:"
 			send "$password\n"
@@ -167,7 +167,7 @@ Submit() {
 			expect "password:"
 			send "$password\n"
 		}
-		"(yes/no/[fingerprint])?" {
+		"(yes/no/\[fingerprint\])?" {
 			send "yes\n"
 			expect "password:"
 			send "$password\n"
@@ -203,7 +203,7 @@ EOF
 			expect "password:"
 			send "$password\n"
 		}
-		"(yes/no/[fingerprint])?" {
+		"(yes/no/\[fingerprint\])?" {
 			send "yes\n"
 			expect "password:"
 			send "$password\n"
@@ -248,7 +248,7 @@ EOF
 			expect "password:"
 			send "$password\n"
 		}
-		"(yes/no/[fingerprint])?" {
+		"(yes/no/\[fingerprint\])?" {
 			send "yes\n"
 			expect "password:"
 			send "$password\n"
@@ -272,7 +272,7 @@ EOF
 			expect "password:"
 			send "$password\n"
 		}
-		"(yes/no/[fingerprint])?" {
+		"(yes/no/\[fingerprint\])?" {
 			send "yes\n"
 			expect "password:"
 			send "$password\n"
@@ -310,7 +310,7 @@ Bind() {
 			expect "password:"
 			send "$password\n"
 		}
-		"(yes/no/[fingerprint])?"{
+		"(yes/no/\[fingerprint\])?" {
 			send "yes\n"
 			expect "password:"
 			send "$password\n"
@@ -354,7 +354,7 @@ Query() {
 			expect "password:"
 			send "$password\n"
 		}
-		"(yes/no/[fingerprint])?" {
+		"(yes/no/\[fingerprint\])?" {
 			send "yes\n"
 			expect "password:"
 			send "$password\n"
@@ -391,7 +391,7 @@ EOF
 			expect "password:"
 			send "$password\n"
 		}
-		"(yes/no/[fingerprint])?" {
+		"(yes/no/\[fingerprint\])?" {
 			send "yes\n"
 			expect "password:"
 			send "$password\n"
@@ -415,7 +415,7 @@ EOF
 			expect "password:"
 			send "$password\n"
 		}
-		"(yes/no/[fingerprint])?" {
+		"(yes/no/\[fingerprint\])?" {
 			send "yes\n"
 			expect "password:"
 			send "$password\n"

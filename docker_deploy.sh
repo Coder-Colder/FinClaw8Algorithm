@@ -170,7 +170,7 @@ DeployPartyInternal() {
 			expect "password:"
 			send "$password\n"
 		}
-		"(yes/no/[fingerprint])?" {
+		"(yes/no/\[fingerprint\])?" {
 			send "yes\n"
 			expect "password:"
 			send "$password\n"
@@ -193,7 +193,7 @@ EOF
 			expect "password:"
 			send "$password\n"
 		}
-		"(yes/no/[fingerprint])?" {
+		"(yes/no/\[fingerprint\])?" {
 			send "yes\n"
 			expect "password:"
 			send "$password\n"
@@ -272,7 +272,7 @@ DeployPartyServing() {
 			expect "password:"
 			send "$password\n"
 		}
-		"(yes/no/[fingerprint])?" {
+		"(yes/no/\[fingerprint\])?" {
 			send "yes\n"
 			expect "password:"
 			send "$password\n"
@@ -294,7 +294,7 @@ EOF
 			expect "password:"
 			send "$password\n"
 		}
-		"(yes/no/[fingerprint])?" {
+		"(yes/no/\[fingerprint\])?" {
 			send "yes\n"
 			expect "password:"
 			send "$password\n"
@@ -364,7 +364,7 @@ DeleteCluster() {
 			expect "password:"
 			send "$password\n"
 		}
-		"(yes/no/[fingerprint])?" {
+		"(yes/no/\[fingerprint\])?" {
 			send "yes\n"
 			expect "password:"
 			send "$password\n"
@@ -394,7 +394,7 @@ EOF
 			expect "password:"
 			send "$password\n"
 		}
-		"(yes/no/[fingerprint])?" {
+		"(yes/no/\[fingerprint\])?" {
 			send "yes\n"
 			expect "password:"
 			send "$password\n"
@@ -426,7 +426,7 @@ EOF
 			expect "password:"
 			send "$password\n"
 		}
-		"(yes/no/[fingerprint])?" {
+		"(yes/no/\[fingerprint\])?" {
 			send "yes\n"
 			expect "password:"
 			send "$password\n"
@@ -454,7 +454,7 @@ EOF
 			expect "password:"
 			send "$password\n"
 		}
-		"(yes/no/[fingerprint])?" {
+		"(yes/no/\[fingerprint\])?" {
 			send "yes\n"
 			expect "password:"
 			send "$password\n"
@@ -482,7 +482,7 @@ EOF
 			expect "password:"
 			send "$password\n"
 		}
-		"(yes/no/[fingerprint])?" {
+		"(yes/no/\[fingerprint\])?" {
 			send "yes\n"
 			expect "password:"
 			send "$password\n"
