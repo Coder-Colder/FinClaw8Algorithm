@@ -170,6 +170,11 @@ DeployPartyInternal() {
 			expect "password:"
 			send "$password\n"
 		}
+		"(yes/no/[fingerprint])?"{
+			send "yes\n"
+			expect "password:"
+			send "$password\n"
+		}
 		"password:" {
 			send "$password\n"
 		}
@@ -184,6 +189,11 @@ EOF
 	spawn ssh $user@$target_party_ip
 	expect {
 		"(yes/no)?" {
+			send "yes\n"
+			expect "password:"
+			send "$password\n"
+		}
+		"(yes/no/[fingerprint])?"{
 			send "yes\n"
 			expect "password:"
 			send "$password\n"
@@ -275,6 +285,11 @@ EOF
 	spawn ssh $user@$target_party_serving_ip
 	expect {
 		"(yes/no)?" {
+			send "yes\n"
+			expect "password:"
+			send "$password\n"
+		}
+		"(yes/no/[fingerprint])?"{
 			send "yes\n"
 			expect "password:"
 			send "$password\n"
@@ -396,6 +411,11 @@ EOF
 			expect "password:"
 			send "$password\n"
 		}
+		"(yes/no/[fingerprint])?"{
+			send "yes\n"
+			expect "password:"
+			send "$password\n"
+		}
 		"password:" {
 			send "$password\n"
 		}
@@ -419,6 +439,11 @@ EOF
 			expect "password:"
 			send "$password\n"
 		}
+		"(yes/no/[fingerprint])?"{
+			send "yes\n"
+			expect "password:"
+			send "$password\n"
+		}
 		"password:" {
 			send "$password\n"
 		}
@@ -438,6 +463,11 @@ EOF
 	spawn ssh $user@$target_party_serving_ip
 	expect {
 		"(yes/no)?" {
+			send "yes\n"
+			expect "password:"
+			send "$password\n"
+		}
+		"(yes/no/[fingerprint])?"{
 			send "yes\n"
 			expect "password:"
 			send "$password\n"
