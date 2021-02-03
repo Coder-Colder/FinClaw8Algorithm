@@ -68,6 +68,11 @@ PartyUpload() {
 			expect "password:"
 			send "$password\n"
 		}
+		"(yes/no/[fingerprint])?"{
+			send "yes\n"
+			expect "password:"
+			send "$password\n"
+		}
 		"password:" {
 			send "$password\n"
 		}
@@ -80,6 +85,11 @@ EOF
     spawn ssh $user@$target_ip
 	expect {
 		"(yes/no)?" {
+			send "yes\n"
+			expect "password:"
+			send "$password\n"
+		}
+		"(yes/no/[fingerprint])?"{
 			send "yes\n"
 			expect "password:"
 			send "$password\n"
@@ -157,6 +167,11 @@ Submit() {
 			expect "password:"
 			send "$password\n"
 		}
+		"(yes/no/[fingerprint])?"{
+			send "yes\n"
+			expect "password:"
+			send "$password\n"
+		}
 		"password:" {
 			send "$password\n"
 		}
@@ -184,6 +199,11 @@ EOF
     spawn ssh $user@$target_party_ip
 	expect {
 		"(yes/no)?" {
+			send "yes\n"
+			expect "password:"
+			send "$password\n"
+		}
+		"(yes/no/[fingerprint])?"{
 			send "yes\n"
 			expect "password:"
 			send "$password\n"
@@ -228,6 +248,11 @@ EOF
 			expect "password:"
 			send "$password\n"
 		}
+		"(yes/no/[fingerprint])?"{
+			send "yes\n"
+			expect "password:"
+			send "$password\n"
+		}
 		"password:" {
 			send "$password\n"
 		}
@@ -243,6 +268,11 @@ EOF
 	spawn scp $user@$target_party_ip:~/info.txt ${WORKINGDIR}/
 	expect {
 		"(yes/no)?" {
+			send "yes\n"
+			expect "password:"
+			send "$password\n"
+		}
+		"(yes/no/[fingerprint])?"{
 			send "yes\n"
 			expect "password:"
 			send "$password\n"
@@ -276,6 +306,11 @@ Bind() {
     spawn ssh $user@$target_party_ip
 	expect {
 		"(yes/no)?" {
+			send "yes\n"
+			expect "password:"
+			send "$password\n"
+		}
+		"(yes/no/[fingerprint])?"{
 			send "yes\n"
 			expect "password:"
 			send "$password\n"
@@ -319,6 +354,11 @@ Query() {
 			expect "password:"
 			send "$password\n"
 		}
+		"(yes/no/[fingerprint])?"{
+			send "yes\n"
+			expect "password:"
+			send "$password\n"
+		}
 		"password:" {
 			send "$password\n"
 		}
@@ -351,6 +391,11 @@ EOF
 			expect "password:"
 			send "$password\n"
 		}
+		"(yes/no/[fingerprint])?"{
+			send "yes\n"
+			expect "password:"
+			send "$password\n"
+		}
 		"password:" {
 			send "$password\n"
 		}
@@ -366,6 +411,11 @@ EOF
 	spawn scp $user@$target_party_ip:~/info.txt ${WORKINGDIR}/
 	expect {
 		"(yes/no)?" {
+			send "yes\n"
+			expect "password:"
+			send "$password\n"
+		}
+		"(yes/no/[fingerprint])?"{
 			send "yes\n"
 			expect "password:"
 			send "$password\n"
