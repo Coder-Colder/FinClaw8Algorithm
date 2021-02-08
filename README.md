@@ -32,6 +32,9 @@ wget https://webank-ai-1251170195.cos.ap-guangzhou.myqcloud.com/fate_1.4.4-image
 
 #加载镜像
 docker load -i fate_1.4.4-images.tar.gz
+
+#配置ssh root用户登陆
+将/etc/ssh/sshd_config中的 PemitRootLogin no/without-password 改为 PermitRootLogin yes
 ```
 
 部署完成后，将本仓库中所有文件拷贝至前述解压得到的目录`docker-deploy`下，直接替换掉原目录中的重名文件
