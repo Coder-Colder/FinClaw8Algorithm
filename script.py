@@ -2,6 +2,7 @@
 import json
 import os
 import logging
+import re
 
 UPLOAD_JSON_PATH = os.path.join(os.curdir, 'upload_data.json')
 PARTIES_PATH = "./parties.conf"
@@ -66,7 +67,6 @@ mysql_ip=mysql
 mysql_user=fate
 mysql_password=fate_dev
 mysql_db=fate_flow
-
 # modify if you are going to use an external redis
 redis_ip=redis
 redis_port=6379
@@ -104,7 +104,6 @@ def create_predict_data_json(model_name, param_dict):
     "x9": -0.733474}
     }
     }
-
     :param model_name:  将要预测的模型名称（在bind时绑定）
     :param param_dict:  用于预测的feature data,为feature name: feature value 的键值对
     :return: json格式的字符串
@@ -225,7 +224,21 @@ def deploy(iplist, idlist, passwordlist, users):
         os.system("bash ./docker_deploy.sh all")
     else:
         run_cmd(["bash", "./generate_config.sh"])
-        run_cmd(["bash", "./docker_deploy.sh", "all"])
+        stdout = run_cmd(["bash", "./docker_deploy.sh", "all"])
+        
+        '''
+        every successful exec will form 2 exits, so test the number of exit 
+        '''
+        def check_deploy_valid(str):
+            pattern = r"exit"
+            compiled_pattern = re.compile(pattern)
+            success_res = compiled_pattern.findall(str)
+            return len(success_res) == 2*len(iplist)
+        
+        if check_deploy_valid(stdout):
+            print("deploy success.")
+        else:
+            print("deploy failure.")
     '''TODO: judge success or not?'''
 
 
@@ -278,7 +291,26 @@ def upload(guest_pair, host_pair, project):
     if args.verbose:
         os.system("bash ./upload.sh all")
     else:
-        pass
+        stdout = run_cmd(['bash', './upload.sh', 'all'])
+
+        def check_valid_retcode(ret_val):
+            pattern = "'retcode':\s+([0-9]+),"
+            re_exp = re.compile(pattern)
+            rets = re_exp.findall(ret_val)
+            if len(rets) != (len(guest_pair) + len(host_pair))/2:
+                return False
+            
+            for val in rets:
+                if int(val) != 0:
+                    return False
+            
+            return True
+        
+        if check_valid_retcode(stdout):
+            print("upload success.")
+        else:
+            print("upload failure.")
+
     '''TODO: judge success or not?'''
 
 
@@ -369,4 +401,3 @@ elif args.function == "query":
     query(args.jobid)
 elif args.function == "r_query":
     _query(args.jobid)
-
