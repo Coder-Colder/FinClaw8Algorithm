@@ -133,7 +133,7 @@ class TrainTask(TaskManager):
         self._data_type = data_type
         self.model_id = model_id
         self.model_version = model_version
-        self.mode_name = model_name
+        self.model_name = model_name
         self.dsl_file = None
         self.train_component_name = None
         self._parse_argv(project_name, table_name)
@@ -169,13 +169,13 @@ class TrainTask(TaskManager):
         if start_serving:
             self._load_model()
             self._bind_model()
-            self.start_predict_task()
         else:
             config_dir_path = self._make_runtime_conf()
             start_task_cmd = ['python', fate_flow_path, "-f", "submit_job", "-d", self.dsl_file,
                             "-c", config_dir_path]
             stdout = self.start_task(start_task_cmd)
             status = stdout["retcode"]
+            print(stdout) # self-define output for returning status
 
             if status != 0:
                 raise ValueError(
@@ -185,7 +185,6 @@ class TrainTask(TaskManager):
 
             self.model_id = stdout['data']['model_info']['model_id']
             self.model_version = stdout['data']['model_info']['model_version']
-            print(stdout)
 
             os.system(" ".join(['python', "/data/projects/fate/saveInfo.py", self.model_id, self.model_version, jobid]))
 
@@ -268,6 +267,7 @@ class TrainTask(TaskManager):
 
         bind_cmd = ['python', fate_flow_path, "-f", "bind", "-c", config_path]
         stdout = self.start_task(bind_cmd)
+        print(stdout) # self-define output for returning status
         status = stdout["retcode"]
         if status != 0:
             raise ValueError(
@@ -300,6 +300,7 @@ class TrainTask(TaskManager):
         config_path = self.__config_bind_load(load_template)
         bind_cmd = ['python', fate_flow_path, "-f", "load", "-c", config_path]
         stdout = self.start_task(bind_cmd)
+        print(stdout) # self-define output for returning status
         status = stdout["retcode"]
         if status != 0:
             raise ValueError(
@@ -410,9 +411,9 @@ def main():
     arg_parser.add_argument("-mid", "--model_id", type=str, help="model id", default=None)
     arg_parser.add_argument("-mv", "--model_version", type=str, help="mdoel version", default=None)
     arg_parser.add_argument("-mn", "--model_name", type=str, help="model name", default=None)
-    arg_parser.add_argument("-alg", "--algorithm", type=str, help="algorithm module to use", required=True)
-    arg_parser.add_argument("-proj", "--project", type=str, help="project name", required=True)
-    arg_parser.add_argument("-t", "--table", nargs='+', type=str, help="table name", required=True)
+    arg_parser.add_argument("-alg", "--algorithm", type=str, help="algorithm module to use", default='hetero_lr')
+    arg_parser.add_argument("-proj", "--project", type=str, help="project name", default='test')
+    arg_parser.add_argument("-t", "--table", nargs='+', type=str, help="table name", default='test')
     arg_parser.add_argument("-f", "--file_type", type=str,
                             help="file_type, "
                                  "'fast' means breast data "
@@ -459,3 +460,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

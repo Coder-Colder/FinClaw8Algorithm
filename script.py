@@ -118,7 +118,7 @@ def create_predict_data_json(model_name, param_dict):
     predict_data_json["head"]["serviceId"] = model_name
     predict_data_json["body"]["featureData"] = param_dict
     predict_data_str = json.dumps(predict_data_json)
-    print(predict_data_str)
+    # print(predict_data_str)
     return predict_data_str
 
 
@@ -185,10 +185,10 @@ parser.add_argument("-m", "--work_mode", type=int, choices=[0, 1],
                     help="the mode of the work, 0 means stand-alone deployment and 1 means multiple deployment,\
                      needed when using'-f submit'.")
 
-parser.add_argument("-mid", "--model_id", type=int,
+parser.add_argument("-mid", "--model_id", type=str,
                     help="the id of the model, needed when submitting the job.Needed when using '-f load_bind'")
 
-parser.add_argument("-mver", "--model_version", type=int,
+parser.add_argument("-mver", "--model_version", type=str,
                     help="the version of the model, needed when submitting the job.Needed when using '-f load_bind'")
 
 parser.add_argument("-mname", "--model_name", type=str,
@@ -215,7 +215,6 @@ def run_cmd(cmd):
                             stderr=subprocess.STDOUT)
     subp.wait()
     stdout, stderr = subp.communicate()
-    print(subp.returncode)
     return stdout.decode("utf-8")
 
 
@@ -284,9 +283,25 @@ def getPartyInfo():
     return party2ip, party2usr, party2pswd
 
 
+def check_valid_retcode(ret_val):
+    pattern = "'retcode':\s+([0-9]+),"
+    re_exp = re.compile(pattern)
+    rets = re_exp.findall(ret_val)
+    for val in rets:
+        if int(val) != 0:
+            return False
+    pattern = '''"retcode":\s+([0-9]+),'''
+    re_exp = re.compile(pattern)
+    rets = re_exp.findall(ret_val)
+    for val in rets:
+        if int(val) != 0:
+            return False
+    return True
+
+
 def upload(guest_pair, host_pair, project):
     if guest_pair is None or len(guest_pair) != 2 or (host_pair is not None and len(host_pair) % 2 != 0):
-        print("error!")
+        print("upload failure.")
     if host_pair is None:
         host_pair = []
     party_path = [(guest_pair[0], guest_pair[1])]
@@ -298,26 +313,10 @@ def upload(guest_pair, host_pair, project):
         os.system("bash ./upload.sh all")
     else:
         stdout = run_cmd(['bash', './upload.sh', 'all'])
-
-        def check_valid_retcode(ret_val):
-            pattern = "'retcode':\s+([0-9]+),"
-            re_exp = re.compile(pattern)
-            rets = re_exp.findall(ret_val)
-            if len(rets) != (len(guest_pair) + len(host_pair)) / 2:
-                return False
-
-            for val in rets:
-                if int(val) != 0:
-                    return False
-
-            return True
-
         if check_valid_retcode(stdout):
             print("upload success.")
         else:
             print("upload failure.")
-
-    '''TODO: judge success or not?'''
 
 
 def delete(iplist, idlist, passwordlist, users):
@@ -331,7 +330,7 @@ def delete(iplist, idlist, passwordlist, users):
         os.system("bash ./docker_deploy.sh --delete all")
     else:
         run_cmd(["bash", "./docker_deploy.sh", "--delete", "all"])
-    '''TODO: judge success or not?'''
+        print("delete success.")
 
 
 def submit(alg, proj, work_mode):
@@ -340,23 +339,43 @@ def submit(alg, proj, work_mode):
     if args.verbose:
         os.system("bash ./upload.sh --submit -m {} -alg {} -proj {}".format(work_mode, alg, proj))
     else:
-        run_cmd("bash ./upload.sh --submit -m {} -alg {} -proj {}".format(work_mode, alg, proj).split(" "))
-    info = {}
-    info["retcode"] = 0
-    with open("./info.txt", "r") as f:
-        f.readline()  # pass the useless params
-        info["model_id"] = f.readline().strip("\n")
-        info["model_version"] = f.readline().strip("\n")
-        info["jobid"] = f.readline().strip("\n")
-    print(info)
+        stdout = run_cmd("bash ./upload.sh --submit -m {} -alg {} -proj {}".format(work_mode, alg, proj).split(" "))
+        info = {}
+        if check_valid_retcode(stdout):
+            info["retcode"] = 0
+            with open("./info.txt", "r") as f:
+                f.readline()  # pass the useless params
+                info["model_id"] = f.readline().strip("\n")
+                info["model_version"] = f.readline().strip("\n")
+                info["jobid"] = f.readline().strip("\n")
+        else:
+            info["retcode"] = 1 # submit failed
+        print(info)
 
 
 def bind(model_name, model_id, model_version):
     if args.verbose:
         os.system("bash ./upload.sh --bind -mid {} -mver {} -mname {}".format(model_id, model_version, model_name))
     else:
-        run_cmd("bash ./upload.sh --bind -mid {} -mver {} -mname {}".format(model_id, model_version, model_name).split(" "))
-    '''TODO: judge success or not?'''
+        stdout = run_cmd("bash ./upload.sh --bind -mid {} -mver {} -mname {}".format(model_id, model_version, model_name).split(" "))
+        if check_valid_retcode(stdout):
+            def check_load_bind_valid(str):
+                pattern = r"Load model Success"
+                compiled_pattern = re.compile(pattern)
+                success_res = compiled_pattern.findall(str)
+                if len(success_res) == 0:
+                    return False
+                pattern = r"Bind model Success"
+                compiled_pattern = re.compile(pattern)
+                success_res = compiled_pattern.findall(str)
+                return  len(success_res) != 0
+
+            if check_load_bind_valid(stdout):
+                print("load_bind success.")
+            else:
+                print("load_bind failure.")
+        else:
+            print("load_bind failure.")
 
 
 def predict(model_name, params):
@@ -367,21 +386,23 @@ def predict(model_name, params):
     predict_str = create_predict_data_json(model_name, predict_param)
     predict_ip = get_guest_ip(PARTIES_PATH)
     cmd = ("curl -X POST -H 'Content-Type: application/json' -d '" + predict_str +
-           " 'http://" + predict_ip + ":8059/federation/v1/inference'")
+           "' 'http://" + predict_ip + ":8059/federation/v1/inference'")
     os.system(cmd)
+    print("")
 
 
 def _query(jobid):
-    ret = run_cmd(["python", fate_flow_path, "-f", "query_job", "-j", jobid, "-r", "guest"])
+    ret = run_cmd(["python", fate_flow_path, "-f", "query_job", "-j", jobid])
     ret = json.loads(ret)
     print(ret)
     status = ret["retcode"]
-    if status != 0:
-        print("running")
-    check_data = ret["data"]
     with open("../info.txt", "w+") as f:
-        for i in range(len(check_data)):
-            f.write(check_data[i]["f_state"] + "\n")
+        if status != 0:
+            f.write("failure\n")
+        else:
+            check_data = ret["data"]
+            for i in range(len(check_data)):
+                f.write(check_data[i]["f_status"] + "\n")
 
 def query(jobid):
     if args.verbose:
@@ -392,7 +413,7 @@ def query(jobid):
     with open("./info.txt", "r") as f:
         for line in f.readlines():
             ret += line
-    print(ret)
+    print(ret, end="")
 
 
 if args.function == "deploy":
@@ -413,3 +434,4 @@ elif args.function == "query":
     query(args.jobid)
 elif args.function == "r_query":
     _query(args.jobid)
+
