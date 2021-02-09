@@ -387,8 +387,12 @@ def predict(model_name, params):
     predict_ip = get_guest_ip(PARTIES_PATH)
     cmd = ("curl -X POST -H 'Content-Type: application/json' -d '" + predict_str +
            "' 'http://" + predict_ip + ":8059/federation/v1/inference'")
-    os.system(cmd)
-    print("")
+    stdout = run_cmd(cmd)
+    ret_dict:dict = eval(stdout)
+    if "data" in ret_dict.keys():
+        print(ret_dict["data"])
+    else:
+        print(ret_dict)
 
 
 def _query(jobid):
@@ -398,7 +402,7 @@ def _query(jobid):
     status = ret["retcode"]
     with open("../info.txt", "w+") as f:
         if status != 0:
-            f.write("failure\n")
+            f.write("failed\n")
         else:
             check_data = ret["data"]
             for i in range(len(check_data)):
