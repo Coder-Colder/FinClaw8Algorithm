@@ -13,8 +13,10 @@ fate_flow_path = "../fate_flow/fate_flow_client.py"
 run_task_path = "./run_task_script/run_task.py"
 job_conf_path = "./run_task_script/config/test_hetero_linr_train_job_conf.json"
 job_dsl_path = "./run_task_script/config/test_hetero_linr_train_job_dsl.json"
-#dsl_path = os.path.join(home_dir, "toy_example_dsl.json")
-#conf_path = os.path.join(home_dir, "toy_example_conf.json")
+
+
+# dsl_path = os.path.join(home_dir, "toy_example_dsl.json")
+# conf_path = os.path.join(home_dir, "toy_example_conf.json")
 
 
 def generateTableName(proj_name, cnt):
@@ -23,12 +25,13 @@ def generateTableName(proj_name, cnt):
         list.append(proj_name + "_" + str(i))
     return list
 
+
 def create_upload_conf(party_path, party2ip, party2usr, party2pswd, project):
-    usernames=[]
-    passwords=[]
-    party_list=[]
-    ip_list=[]
-    plist=[]
+    usernames = []
+    passwords = []
+    party_list = []
+    ip_list = []
+    plist = []
     for item in party_path:
         id, path = item
         usernames.append(party2usr[id])
@@ -36,7 +39,7 @@ def create_upload_conf(party_path, party2ip, party2usr, party2pswd, project):
         party_list.append(id)
         ip_list.append(party2ip[id])
         plist.append(path)
-    tlist=generateTableName(project, len(plist))
+    tlist = generateTableName(project, len(plist))
 
     with open(UPLOAD_CONF_PATH, "w+") as f:
         f.write("#!/bin/bash\n\n")
@@ -50,6 +53,7 @@ def create_upload_conf(party_path, party2ip, party2usr, party2pswd, project):
         f.write("table_names=({})\n".format(" ".join(tlist)))
         f.write("datapaths=({})\n".format(" ".join(plist)))
         f.write("project={}\n".format(project))
+
 
 def create_parties_json(ip_list, party_list, passwords, usernames=[]):
     with open(PARTIES_PATH, 'w+') as f:
@@ -114,7 +118,7 @@ def create_predict_data_json(model_name, param_dict):
     predict_data_json["head"]["serviceId"] = model_name
     predict_data_json["body"]["featureData"] = param_dict
     predict_data_str = json.dumps(predict_data_json)
-    print(predict_data_str)
+    # print(predict_data_str)
     return predict_data_str
 
 
@@ -131,12 +135,15 @@ def get_guest_ip(data_path):
     f.close()
     return guest_ip
 
+
 # Argument Parser
 import argparse
 import os
 
 parser = argparse.ArgumentParser(add_help=True, description="Fedarated Learning command parser")
-parser.add_argument("-f", "--function", type=str, choices=["deploy", "delete", "upload", "r_upload", "submit", "load_bind", "predict", "query", "r_query"], required=True,
+parser.add_argument("-f", "--function", type=str,
+                    choices=["deploy", "delete", "upload", "r_upload", "submit", "load_bind", "predict", "query",
+                             "r_query"], required=True,
                     help="choose the function to execute.")
 
 parser.add_argument("-u", "--users", type=str, nargs='*',
@@ -178,10 +185,10 @@ parser.add_argument("-m", "--work_mode", type=int, choices=[0, 1],
                     help="the mode of the work, 0 means stand-alone deployment and 1 means multiple deployment,\
                      needed when using'-f submit'.")
 
-parser.add_argument("-mid", "--model_id", type=int,
+parser.add_argument("-mid", "--model_id", type=str,
                     help="the id of the model, needed when submitting the job.Needed when using '-f load_bind'")
 
-parser.add_argument("-mver", "--model_version", type=int,
+parser.add_argument("-mver", "--model_version", type=str,
                     help="the version of the model, needed when submitting the job.Needed when using '-f load_bind'")
 
 parser.add_argument("-mname", "--model_name", type=str,
@@ -196,7 +203,6 @@ parser.add_argument("-jid", "--jobid", type=str,
 parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")
 
 args = parser.parse_args()
-
 
 import subprocess
 
@@ -225,22 +231,21 @@ def deploy(iplist, idlist, passwordlist, users):
     else:
         run_cmd(["bash", "./generate_config.sh"])
         stdout = run_cmd(["bash", "./docker_deploy.sh", "all"])
-        
+
         '''
         every successful exec will form 2 exits, so test the number of exit 
         '''
+
         def check_deploy_valid(str):
-            pattern = r"exit"
+            pattern = r"(error)|(ERROR)"
             compiled_pattern = re.compile(pattern)
-            success_res = compiled_pattern.findall(str)
-            return len(success_res) == 2*len(iplist)
-        
+            error_res = compiled_pattern.findall(str)
+            return len(error_res) == 0
+
         if check_deploy_valid(stdout):
             print("deploy success.")
         else:
             print("deploy failure.")
-    '''TODO: judge success or not?'''
-
 
 
 def _upload(datapath, project, tablename):
@@ -268,9 +273,9 @@ def getPartyInfo():
                 plist = line.strip("\n").strip("passwords=").strip("(").strip(")").split(" ")
             elif line.find("partylist") != -1:
                 idlist = line.strip("\n").strip("partylist=").strip("(").strip(")").split(" ")
-    party2pswd={}
-    party2usr={}
-    party2ip={}
+    party2pswd = {}
+    party2usr = {}
+    party2ip = {}
     for idx in range(len(idlist)):
         party2ip[idlist[idx]] = iplist[idx]
         party2usr[idlist[idx]] = ulist[idx]
@@ -278,48 +283,54 @@ def getPartyInfo():
     return party2ip, party2usr, party2pswd
 
 
+def check_valid_retcode(ret_val):
+    pattern = "'retcode':\s+([0-9]+),"
+    re_exp = re.compile(pattern)
+    rets = re_exp.findall(ret_val)
+    for val in rets:
+        if int(val) != 0:
+            return False
+    pattern = '''"retcode":\s+([0-9]+),'''
+    re_exp = re.compile(pattern)
+    rets = re_exp.findall(ret_val)
+    for val in rets:
+        if int(val) != 0:
+            return False
+    return True
+
+
 def upload(guest_pair, host_pair, project):
     if guest_pair is None or len(guest_pair) != 2 or (host_pair is not None and len(host_pair) % 2 != 0):
-        print("error!")
+        print("upload failure.")
     if host_pair is None:
         host_pair = []
     party_path = [(guest_pair[0], guest_pair[1])]
     for idx in range(0, len(host_pair), 2):
-        party_path.append((host_pair[idx], host_pair[idx+1]))
+        party_path.append((host_pair[idx], host_pair[idx + 1]))
     party2ip, party2usr, party2pswd = getPartyInfo()
     create_upload_conf(party_path, party2ip, party2usr, party2pswd, project)
     if args.verbose:
         os.system("bash ./upload.sh all")
     else:
         stdout = run_cmd(['bash', './upload.sh', 'all'])
-
-        def check_valid_retcode(ret_val):
-            pattern = "'retcode':\s+([0-9]+),"
-            re_exp = re.compile(pattern)
-            rets = re_exp.findall(ret_val)
-            if len(rets) != (len(guest_pair) + len(host_pair))/2:
-                return False
-            
-            for val in rets:
-                if int(val) != 0:
-                    return False
-            
-            return True
-        
         if check_valid_retcode(stdout):
             print("upload success.")
         else:
             print("upload failure.")
 
-    '''TODO: judge success or not?'''
 
-
-def delete():
+def delete(iplist, idlist, passwordlist, users):
+    if users == None:
+        users = ["root"]
+    if len(users) != len(idlist):
+        for i in range(len(idlist) - len(users)):
+            users.append("root")
+    create_parties_json(iplist, idlist, passwordlist, users)
     if args.verbose:
         os.system("bash ./docker_deploy.sh --delete all")
     else:
         run_cmd(["bash", "./docker_deploy.sh", "--delete", "all"])
-    '''TODO: judge success or not?'''
+        print("delete success.")
 
 
 def submit(alg, proj, work_mode):
@@ -328,24 +339,43 @@ def submit(alg, proj, work_mode):
     if args.verbose:
         os.system("bash ./upload.sh --submit -m {} -alg {} -proj {}".format(work_mode, alg, proj))
     else:
-        run_cmd("bash ./upload.sh --submit -m {} -alg {} -proj {}".format(work_mode, alg, proj).split(" "))
-    '''TODO: judge success or not?'''
-    info={}
-    info["retcode"] = 0
-    with open("./info.txt", "r") as f:
-        info["model_id"] = f.readline().strip("\n")
-        info["model_version"] = f.readline().strip("\n")
-        info["jobid"] = f.readline().strip("\n")
-    print(info)
-
+        stdout = run_cmd("bash ./upload.sh --submit -m {} -alg {} -proj {}".format(work_mode, alg, proj).split(" "))
+        info = {}
+        if check_valid_retcode(stdout):
+            info["retcode"] = 0
+            with open("./info.txt", "r") as f:
+                f.readline()  # pass the useless params
+                info["model_id"] = f.readline().strip("\n")
+                info["model_version"] = f.readline().strip("\n")
+                info["jobid"] = f.readline().strip("\n")
+        else:
+            info["retcode"] = 1 # submit failed
+        print(info)
 
 
 def bind(model_name, model_id, model_version):
     if args.verbose:
         os.system("bash ./upload.sh --bind -mid {} -mver {} -mname {}".format(model_id, model_version, model_name))
     else:
-        run_cmd("bash ./upload.sh --bind -mid {} -mver {} -mname {}".format(model_id, model_version, model_name).split(" "))
-    '''TODO: judge success or not?'''
+        stdout = run_cmd("bash ./upload.sh --bind -mid {} -mver {} -mname {}".format(model_id, model_version, model_name).split(" "))
+        if check_valid_retcode(stdout):
+            def check_load_bind_valid(str):
+                pattern = r"Load model Success"
+                compiled_pattern = re.compile(pattern)
+                success_res = compiled_pattern.findall(str)
+                if len(success_res) == 0:
+                    return False
+                pattern = r"Bind model Success"
+                compiled_pattern = re.compile(pattern)
+                success_res = compiled_pattern.findall(str)
+                return  len(success_res) != 0
+
+            if check_load_bind_valid(stdout):
+                print("load_bind success.")
+            else:
+                print("load_bind failure.")
+        else:
+            print("load_bind failure.")
 
 
 def predict(model_name, params):
@@ -356,20 +386,23 @@ def predict(model_name, params):
     predict_str = create_predict_data_json(model_name, predict_param)
     predict_ip = get_guest_ip(PARTIES_PATH)
     cmd = ("curl -X POST -H 'Content-Type: application/json' -d '" + predict_str +
-           " 'http://" + predict_ip + ":8059/federation/v1/inference'")
+           "' 'http://" + predict_ip + ":8059/federation/v1/inference'")
     os.system(cmd)
+    print("")
 
 
 def _query(jobid):
-    ret = eval(run_cmd(["python", fate_flow_path, "-f", "query_job", "-j", jobid, "-r", "guest"]))
+    ret = run_cmd(["python", fate_flow_path, "-f", "query_job", "-j", jobid])
     ret = json.loads(ret)
+    print(ret)
     status = ret["retcode"]
-    if status != 0:
-        print("running")
-    check_data = ret["data"]
     with open("../info.txt", "w+") as f:
-        for i in len(check_data):
-            f.write(check_data[i]["f_state"]+"\n")
+        if status != 0:
+            f.write("failure\n")
+        else:
+            check_data = ret["data"]
+            for i in range(len(check_data)):
+                f.write(check_data[i]["f_status"] + "\n")
 
 def query(jobid):
     if args.verbose:
@@ -379,8 +412,8 @@ def query(jobid):
     ret = ""
     with open("./info.txt", "r") as f:
         for line in f.readlines():
-            ret += line.strip("\n")
-    print(ret)
+            ret += line
+    print(ret, end="")
 
 
 if args.function == "deploy":
@@ -390,7 +423,7 @@ elif args.function == "submit":
 elif args.function == "r_upload":
     _upload(args.datapath, args.project, args.tablename)
 elif args.function == "delete":
-    delete()
+    delete(args.ip, args.id, args.password, args.users)
 elif args.function == "load_bind":
     bind(args.model_name, args.model_id, args.model_version)
 elif args.function == "upload":
@@ -401,3 +434,4 @@ elif args.function == "query":
     query(args.jobid)
 elif args.function == "r_query":
     _query(args.jobid)
+

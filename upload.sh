@@ -236,33 +236,12 @@ EOF
 		}
 	}
 	expect "#"
-    send "exit\r"
-    expect eof
-EOF
-/usr/bin/expect<<EOF
-    set timeout $timecnt
-    spawn ssh $user@$target_party_ip
-	expect {
-		"(yes/no)?" {
-			send "yes\n"
-			expect "password:"
-			send "$password\n"
-		}
-		"(yes/no/\[fingerprint\])?" {
-			send "yes\n"
-			expect "password:"
-			send "$password\n"
-		}
-		"password:" {
-			send "$password\n"
-		}
-	}
-	expect "#"
 	send "docker cp confs-${gid}_python_1:/data/projects/fate/info.txt ~/info.txt\r"
 	expect "#"
     send "exit\r"
     expect eof
 EOF
+
 /usr/bin/expect<<EOF
     set timeout $timecnt
 	spawn scp $user@$target_party_ip:~/info.txt ${WORKINGDIR}/
@@ -286,9 +265,7 @@ EOF
 }
 
 Bind() {
-	work_mode=$workmode
-	alg=xxx
-	proj=xxx
+    work_mode=$workmode
 	model_id=${3}
 	model_version=${5}
 	model_name=${7}
@@ -324,7 +301,7 @@ Bind() {
 	expect "#"
 	send "cd ${project}/\r"
 	expect "#"
-	send "python ./run_task_script/run_task.py -m ${work_mode} -s 1 -alg ${alg} -proj ${proj} -t ${table_name} -mid ${model_id} -mv ${model_version} -gid ${gid} -hid ${hid} -aid ${gid}\r"
+	send "python ./run_task_script/run_task.py -s 1 -m ${work_mode} -mid ${model_id} -mv ${model_version} -mn ${model_name} -gid ${gid} -hid ${hid} -aid ${gid}\r"
     expect {
 		"success" {
 			expect "#"
@@ -372,36 +349,16 @@ Query() {
     expect {
 		"success" {
 			expect "#"
-			send "exit\r"
+			send "\r"
 		}
 		"#" {
-			send "exit\r"
+			send "\r"
 		}
 	}
 	expect "#"
-    send "exit\r"
-    expect eof
-EOF
-/usr/bin/expect<<EOF
-    set timeout $timecnt
-    spawn ssh $user@$target_party_ip
-	expect {
-		"(yes/no)?" {
-			send "yes\n"
-			expect "password:"
-			send "$password\n"
-		}
-		"(yes/no/\[fingerprint\])?" {
-			send "yes\n"
-			expect "password:"
-			send "$password\n"
-		}
-		"password:" {
-			send "$password\n"
-		}
-	}
+	send "exit\r"
 	expect "#"
-	send "docker cp confs-${gid}_python_1:/data/projects/fate/info.txt ~/info.txt\r"
+	send "docker cp confs-${gid}_python_1:/data/projects/fate/python/info.txt ~/info.txt\r"
 	expect "#"
     send "exit\r"
     expect eof
