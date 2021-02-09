@@ -103,91 +103,199 @@ docker load -i fate_1.4.4-images.tar.gz
    1. `-u`/`--users` 参数暂时无效，请给出参与训练各方的root用户的密码
    2. 每次执行脚本必须给出`-f`/`--function`参数，用于指明此次调用脚本需要完成的任务。可选任务说明：
       + `deploy`:完成在参与训练的各方主机上部署训练环境执行该任务前需要满足以下要求
+
         1. 当任务指明为`deploy`时，必须明确给出参数`-pw`, `-id`, `-ip`，每个参数都是长度一致的列表，注意元素的对应性
+
+        2. 返回值-单行字符串
+
+           + 成功：`deploy success.`
+
+           + 失败: `deploy failure.`
+
       + `upload`:必须在`deploy`完成后执行，功能：完成各参与方数据集上传
+        
         1. 参与训练的各方主机上应已经将数据集存放在所给路径下
+        
         2. 当任务指明为`upload`时，必须明确给出参数`-gp`,`-hp`, `-proj`
-        3. `-gp`和`-hp`参数都是合作方id与其主机上数据集路径的二元组，前者只传一个二元组，后者可接受一个二元组序列。
+        
+        3. `-gp`和`-hp`参数都是合作方id与其主机上数据集路径的二元组，`-gp`只接受一个二元组，`-hp`可接受一个二元组序列。
+        
         4. 注：第3点终说明的二元组（id, path）在传参时并不需要明确用括号和逗号标识，直接以`id path`形式给出，例如
             ```
             python script.py -gp 9999 /root/data.csv -hp 9999 /root/data1.csv 10000 /root/data2.csv
-            ``` 
+            ```
             含义为id为9999的一方同时扮演角色guest和host，分别要上传数据集/root/data.csv和/root/data1.csv，而id为10000的一方扮演角色host, 上传数据集为/root/data2.csv
-        5. `upload`任务和`deploy`任务有继承性关联，一般`deloy`任务后紧跟`upload`
+            
+        5. `upload`任务和`deploy`任务有继承性关联，一般`deloy`任务后紧跟`upload`，不应穿插其他任务
+        
+        6. 返回值-单行字符串
+        
+            + 成功：`upload success.`
+        
+            + 失败: `upload failure.`
+        
       + `submit`：必须在`upload`完成后才能执行，功能：在训练环境部署完成的前提下由监管方发起一次训练任务
-        1. 返回值:moder_id, model_version, job_id，用于后续查询训练状态，绑定模型和开展预测服务，需要保存
-        2. 该任务执行失败会返回错误码和错误内容
-        3. 当任务指明为`submit`时，必须明确给出参数`-alg`, `-proj`, `-m`
-        4. `deploy`任务和`upload`任务有继承性关联，一般`upload`任务后紧跟`submit`，若多次`deploy`后才调用`subit`则会以最后一次`deploy`部署的节点和提交数据集开展训练。请勿多次调用`submit`，否则将提交多次相同的训练任务，造成不必要的开销
+
+        1. 该任务执行失败会返回错误码和错误内容
+
+        2. 当任务指明为`submit`时，必须明确给出参数`-alg`, `-proj`, `-m`
+
+        3. `deploy`任务和`upload`任务有继承性关联，一般`upload`任务后紧跟`submit`，不应穿插其他任务。若多次`deploy`后才调用`subit`则会以最后一次`deploy`部署的节点和提交数据集开展训练。请勿多次调用`submit`，否则将提交多次相同的训练任务，造成不必要的开销
+
+        4. 返回值-json格式字符串
+
+           包含retcode，model_id, model_version, job_id等信息。系统需要保存model_id, model_version, job_id用于后续查询训练状态，绑定模型和开展预测服务。retcode为0表明任务执行成功，返回值格式如下：
+
+           + 成功：`{'retcode': 0, 'model_id': 'xxx', 'model_version': 'xxx', 'jobid': 'xxx'}`
+
+           + 失败：`{'retcode': 1}`
+
       + `query`:用于查询当前训练任务状态
         1. 返回值: 模型各个阶段的状态，多行字符串，每行为`success`, `failed`和`running`。`running`说明模型正在训练尚未结束，而若所有返回值全为`success`则模型训练成功完成否则若出现一次`failed`则模型训练以失败告终
+        
         2. 当任务指明为`query`时，必须明确给出参数`-jid`
-      + `delete`：删除之前的部署，需要给出与deploy时一样的参数
+        
+        3. 返回值-多行字符串
+        
+           每行字符串代表训练任务中个一个角色（arbiter，guest, host1, host2...)的工作状态，取值包括running，waiting，failed，success等
+        
+           判断训练是否正常完成的唯一方法是：多行字符串皆为success
+        
+           + 正常完成示例
+        
+             ```
+             success
+             success
+             success
+             success
+             ```
+        
+           + 正常运行但为完成示例
+        
+             ```
+             running
+             running
+             running 
+             ```
+        
+           + 失败示例
+        
+             ```
+             failed
+             running
+             ```
+        
+             ```
+             failed
+             failed
+             ```
+        
       + `load_bind`:必须在`submit`完成后才能执行，功能：加载与绑定，具有数据标签的一方绑定模型提供预测服务
+        
         1. 当任务指明为`load_bind`时，必须明确给出参数`-mid`, `-mver`, `-mname`
+        2. mname为模型名字，可自定义
+        3. 返回值-单行字符串
+           + 成功：`load_bind success.`
+           + 失败：`load_bind failure.`
+        
       + `predict`:必须在`load_bind`完成后才能执行，功能：完成模型预测 
+
         1. 当任务指明为`predict`时，必须明确给出参数`-mname`, `-params`
 
-4. 示例
+        2. 返回值-json格式字符串
+
+           包含"prob","retmsg","retcode"等字段，"prob"为预测概率（预测结果）。只有个当retcode为0时表明预测任务正常执行，否则执行失败
+
+           + 成功示例：`{"prob":0.30684422824464636,"retmsg":"success","retcode":0}`
+
+           + 失败示例：
+
+             `{"retmsg":"remote rpc exception","retcode":105}`
+
+      + `delete`：删除之前的部署，需要给出与deploy时一样的参数
+
+         1. 返回值-单行字符串
+            + 成功：`delete success.`
+            + 失败：`delete failure.`
+
+4. 脚本功能总结示例
 
    + `deploy`
 
      ```
      python3 script.py -f deploy -pw 123456 123456 -id 1 2 -ip 1.1.1.1 2.2.2.2
      ```
-    
+
    + `upload`:
      ```
      python3 script.py -f upload -gp 1 /root/data.csv -hp 1 /root/data1.csv 2 /root/data2.csv -proj example 
      ```
      
    + `submit`:
-   
+
      ```
      python3 script.py -f submit -alg hetero_lr -proj example -m 1
      ```
-   
+
    + `query`:
-   
+
      ```
      python3 script.py -f query -jid jobid
      ```
      
-   + `delete`：
-   
-     ```
-     python3 script.py -f delete
-     ```
-     
    + `load_bind`:
+     
      ```
      python3 script.py -f load_bind -mid model_id -mver model_version -mname toy_model
      ```
      
    + `predict`:
+     
      ```
      python3 script.py -f predict -mname toy_model -params 1 2 3 4 0.5
      ```
      
-5. examples
+   + `delete`：
+
+       ```
+       python3 script.py -f delete -pw 123456 123456 -id 1 2 -ip 1.1.1.1 2.2.2.2
+       ```
+
+5. 单主机实例:
+
+    以下运行实例为在单个主机上部署kubeFate集群，并开展模型训练任务。
+
+    ip为192.168.137.50的主机同时扮演host、guset的角色，训练数据breast_hetero_guest1.csv，breast_hetero_host1.csv事先存放于相应路径
+
+    图示：
+
+    ![workflow](.\pics\workflow.png)
+
+    code:
+
     ```
-    liyi@Ubuntu-Citi:~/docker-deploy$ python3 script.py -f deploy -id 1 -ip 192.168.137.50 -pw 123456 -u root
-        deploy success.
-    liyi@Ubuntu-Citi:~/docker-deploy$ python3 script.py -f upload -gp 1 /home/liyi/data/breast_hetero_guest.csv -hp 1 /home/liyi/data/breast_hetero_host.csv -proj test
-        upload success.
+    liyi@Ubuntu-Citi:~/docker-deploy$ python3 script.py -f deploy -ip 192.168.137.50 -id 1 -pw 123456 -u root
+    deploy success.
+    liyi@Ubuntu-Citi:~/docker-deploy$ python3 script.py -f upload -gp 1 /home/liyi/data/breast_hetero_guest1.csv -hp 1 /home/liyi/data/breast_hetero_host1.csv -proj test
+    upload success.
     liyi@Ubuntu-Citi:~/docker-deploy$ python3 script.py -f submit -proj test -alg hetero_lr -m 1
-        {'retcode': 0, 'model_id': 'arbiter-1#guest-1#host-1#model', 'model_version': '202102090447487036814', 'jobid': '202102090447487036814'}
-    liyi@Ubuntu-Citi:~/docker-deploy$ python3 script.py -f query -jid 202102090447487036814
-        running
-        running
-        running
-    liyi@Ubuntu-Citi:~/docker-deploy$ python3 script.py -f query -jid 202102090447487036814
-        success
-        success
-        success
-    liyi@Ubuntu-Citi:~/docker-deploy$ python3 script.py -f load_bind -mid arbiter-1#guest-1#host-1#model -mver 202102090447487036814 -mname test
-        load_bind success.
+    {'retcode': 0, 'model_id': 'arbiter-1#guest-1#host-1#model', 'model_version': '202102090702550067215', 'jobid': '202102090702550067215'}
+    liyi@Ubuntu-Citi:~/docker-deploy$ python3 script.py -f query -jid 202102090702550067215
+    running
+    running
+    running
+    liyi@Ubuntu-Citi:~/docker-deploy$ python3 script.py -f query -jid 202102090702550067215
+    success
+    success
+    success
+    liyi@Ubuntu-Citi:~/docker-deploy$ python3 script.py -f load_bind -mid arbiter-1#guest-1#host-1#model -mver 202102090702550067215 -mname test
+    load_bind success.
     liyi@Ubuntu-Citi:~/docker-deploy$ python3 script.py -f predict -mname test -params 1 2 3 4 5 6 7 8 9 10
-        {"retmsg":"remote rpc exception","retcode":105}
+    {"retmsg":"remote rpc exception","retcode":105}
+    liyi@Ubuntu-Citi:~/docker-deploy$ python3 script.py -f delete -ip 192.168.137.50 -id 1 -pw 123456 -u root
+    delete success.
+    liyi@Ubuntu-Citi:~/docker-deploy$ 
     ```
+    注意到，在执行predict任务时，返回结果中“retcode"不为0，即无法正常开展预测服务，可能原因是在单一主机上部署集群，host和guset共用同一服务器造成冲突。在多机集群部署时或可正常获取预测结果
+    
 
