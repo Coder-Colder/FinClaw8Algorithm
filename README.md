@@ -122,11 +122,7 @@ docker load -i fate_1.4.4-images.tar.gz
       + `query`:用于查询当前训练任务状态
         1. 返回值: 模型各个阶段的状态，多行字符串，每行为`success`, `failed`和`running`。`running`说明模型正在训练尚未结束，而若所有返回值全为`success`则模型训练成功完成否则若出现一次`failed`则模型训练以失败告终
         2. 当任务指明为`query`时，必须明确给出参数`-jid`
-<<<<<<< HEAD
-      + `delete`：删除之前的部署，不需要给出其余配置信息，默认使用上一次deploy的配置
-=======
-      + `delete`：删除之前的部署，需要给出deploy的配置
->>>>>>> c05499422a8833d47ef707f64200bb763ade2413
+      + `delete`：删除之前的部署，需要给出与deploy时一样的参数
       + `load_bind`:必须在`submit`完成后才能执行，功能：加载与绑定，具有数据标签的一方绑定模型提供预测服务
         1. 当任务指明为`load_bind`时，必须明确给出参数`-mid`, `-mver`, `-mname`
       + `predict`:必须在`load_bind`完成后才能执行，功能：完成模型预测 
